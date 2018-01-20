@@ -1,7 +1,7 @@
 lazy val commonSettings = Seq(
   organization := "tw.lanyitin",
   version := "0.1.0",
-  scalaVersion := "2.11.8"
+  scalaVersion := "2.12.4"
 )
 
 lazy val root = (project in file(".")).
@@ -10,4 +10,5 @@ lazy val root = (project in file(".")).
     name := "huevo"
   )
 
-libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.6"
+libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.4"
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.4" % "test"

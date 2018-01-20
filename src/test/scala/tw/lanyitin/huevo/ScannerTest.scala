@@ -1,54 +1,47 @@
 package tw.lanyitin.huevo
 
 import org.scalatest._
+import java.io.File
+import java.io.FileWriter
 
 class ScannerSpec extends FlatSpec with Matchers {
 
-  "A Scanner" should "return a keywrod toekn for 'def'" in {
-    val scanner = new Scanner("def")
-    val token = scanner.NextToken
-    token.Text should be ("def")
-    token.Type should be (TokenType.Keyword)
-    token.LineNum should be (1)
-    token.StartCol should be (0)
-    token.EndCol should be (2)
+  "A Scanner" should "able to find tokens for function declaration" in {
+    val content = """
+    |def add(a: Number, b: Number): Number = {
+    |  a + b + (1 * 1 / 1) - 1
+    |}
+    |def addTwice(a: Number, b: Number): Number = {
+    |  if (b > 0) {
+    |    add(add(a, b), b)
+    |  } else {
+    |    a
+    |  }
+    |}
+    """.stripMargin('|')
+    val scanner = Scanner(content, println)
+    val tokens = takeWhile(scanner, (token) => token != EOFToken && token != UnexpectedToken)
+      .filter(token => token match {
+        case SpaceToken(_) => false
+        case NewLineToken(_) => false
+        case default => true
+      })
+    if (tokens.contains(UnexpectedToken)) {
+      fail()
+    } else {
+      succeed
+    }
   }
 
-  it should "return a identifier toekn for 'fibonacci'" in {
-    val scanner = new Scanner("fibonacci")
-    val token = scanner.NextToken
-    token.Text should be ("fibonacci")
-    token.Type should be (TokenType.Identifier)
-    token.LineNum should be (1)
-    token.StartCol should be (0)
-    token.EndCol should be (8)
+  def takeWhile(scanner: Scanner, p: (Token) => Boolean): List[Token] = {
+    def loop(scanner: Scanner, acc: List[Token]): List[Token] = {
+      val (token, next_state) = scanner.nextToken
+      if (!p(token)) {
+        token :: acc
+      } else {
+        loop(next_state, token :: acc)
+      }
+    }
+    loop(scanner, Nil).reverse
   }
-
-  it should "return a number toekn for '1'" in {
-    val scanner = new Scanner("1")
-    val token = scanner.NextToken
-    token.Text should be ("1")
-    token.Type should be (TokenType.Number)
-    token.LineNum should be (1)
-    token.StartCol should be (0)
-    token.EndCol should be (0)
-  }
-
-  it should "return a keywrod toekn for 'def' and than identifier token for 'fibonacci'" in {
-    val scanner = new Scanner("def fibonacci")
-    val token1 = scanner.NextToken
-    token1.Text should be ("def")
-    token1.Type should be (TokenType.Keyword)
-    token1.LineNum should be (1)
-    token1.StartCol should be (0)
-    token1.EndCol should be (2)
-
-    val token2 = scanner.NextToken
-    token2.Text should be ("fibonacci")
-    token2.Type should be (TokenType.Identifier)
-    token2.LineNum should be (1)
-    token2.StartCol should be (4)
-    token2.EndCol should be (12)
-  }
-
 }

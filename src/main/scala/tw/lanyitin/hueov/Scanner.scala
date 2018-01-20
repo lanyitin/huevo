@@ -1,81 +1,100 @@
 package tw.lanyitin.huevo
 
+import java.util.regex.Pattern
 
-object TokenType extends Enumeration {
-  val Keyword = Value
-  val Identifier = Value
-  val Number = Value
-  val EOF = Value
+sealed trait Token
+// Misc Tokens
+case class SpaceToken(val text: String) extends Token
+case class NewLineToken(val text: String) extends Token
+case object EOFToken extends Token
+case object UnexpectedToken extends Token
+// Literal Tokens
+case class NumberToken(val text: String) extends Token
+case class StringToken(val text: String) extends Token
+// Symbol Tokens
+case object LParanToken extends Token
+case object RParanToken extends Token
+case object LCurlyBracket extends Token
+case object RCurlyBracket extends Token
+case object CommaToken extends Token
+case object ColumnToken extends Token
+// Keyword Tokens
+case object DefToken extends Token
+case object IfToken extends Token
+case object ElseToken extends Token
+// Others
+case class IdentifierToken(val text: String) extends Token
+case class OperatorToken(val text: String) extends Token
+
+sealed trait ScannerMode {
+  type TokenFn = (String) => Token
+  def tokenizer: List[Tuple2[Pattern, TokenFn]]
+}
+case object NormalMode extends ScannerMode {
+  def tokenizer: List[Tuple2[Pattern, TokenFn]] =
+    (Pattern.compile("^(def)"), (txt: String) => DefToken) ::
+    (Pattern.compile("^(if)"), (txt: String) => IfToken) ::
+    (Pattern.compile("^(else)"), (txt: String) => ElseToken) ::
+    (Pattern.compile("^([a-zA-Z][a-zA-Z0-9]*)"), (txt: String) => IdentifierToken(txt)) ::
+    (Pattern.compile("^(\\r|\\r\\n|\\n)"), (txt: String) => NewLineToken(txt)) ::
+    (Pattern.compile("^([\\t ]+)"), (txt: String) => SpaceToken(txt)) ::
+    (Pattern.compile("^(\\d+)"), (txt: String) => NumberToken(txt)) ::
+    (Pattern.compile("^(,)"), (txt: String) => CommaToken) ::
+    (Pattern.compile("^(:)"), (txt: String) => ColumnToken) ::
+    (Pattern.compile("^(\\+|-|\\*|\\/|>|<|=)|and|or|>=|<="), (txt: String) => OperatorToken(txt)) ::
+    (Pattern.compile("^(\\{)"), (txt: String) => LCurlyBracket) ::
+    (Pattern.compile("^(\\})"), (txt: String) => RCurlyBracket) ::
+    (Pattern.compile("^(\\()"), (txt: String) => LParanToken) ::
+    (Pattern.compile("^(\\))"), (txt: String) => RParanToken) ::
+    Nil
 }
 
-class Token(
-  val Text: String,
-  val Type: TokenType.Value,
-  val LineNum: Int,
-  val StartCol: Int,
-  val EndCol: Int
-)
+case class ScannerState(position: Integer, col: Integer, row: Integer, mode: ScannerMode)
 
-
-/** Fundamental Scanner that parse tokens from string
-  *
-  * @constructor create a new Scanner
-  * @param content the text for lexing
-  */
-class Scanner(val content: String) {
-  private val content_length = content.length
-  private var index: Int = 0
-  private var col: Int = 0
-  private var line: Int = 1
-
-// Fetch tokens sequentially
-  def NextToken(): Token = {
-    if (content(this.index) == ' ' || content(this.index) == '\t') {
-      this.index += 1
-      this.col += 1
-      NextToken()
-    } else if (content(this.index) == '\n') {
-      this.index += 1
-      this.col = 0
-      this.line += 1
-      NextToken()
-    } else if (content(this.index).isLetter) {
-      this.parse_keyword_or_identifier()
-    } else if (content(this.index).isDigit) {
-      this.parse_number()
-    } else throw new Exception(s"unexcepted char: ${this.content(this.index)}")
-  }
-
-  /** parse keyword or identifier
-    *
-    */
-  private def parse_keyword_or_identifier(): Token = {
-    def recursive(buf: String, cur_idx: Int, start_col: Int, cur_col: Int): (Token, Int, Int) = {
-      if (cur_idx < this.content_length && this.content(cur_idx).isLetterOrDigit) {
-        recursive(buf + this.content(cur_idx), cur_idx + 1, start_col, cur_col + 1)
+case class Scanner(val content: String, state: ScannerState, print: (String) => Unit) {
+  def nextToken(): (Token, Scanner) = {
+    def loop(tokenizer: List[Tuple2[Pattern, state.mode.TokenFn]]): Token = {
+      if (tokenizer.isEmpty) {
+        UnexpectedToken
       } else {
-        if (buf == "def") (new Token(buf, TokenType.Keyword, this.line, start_col, cur_col - 1), cur_idx, cur_col)
-        else (new Token(buf, TokenType.Identifier, this.line, start_col, cur_col - 1), cur_idx, cur_col)
+        val matcher = tokenizer.head._1.matcher(content.substring(state.position))
+        if (matcher.find()) {
+          tokenizer.head._2(matcher.group(0))
+        } else {
+          loop(tokenizer.tail)
+        }
       }
     }
-    val (token, cur_idx, cur_col) = recursive("", this.index, this.col, this.col)
-    this.col = cur_col
-    this.index = cur_idx
-    token
-  }
-   /** parse number
-    *
-    */ 
-    private def parse_number(): Token = {
-    def recursive(buf: String, cur_idx: Int, start_col: Int, cur_col: Int): (Token, Int, Int) = {
-      if (cur_idx < this.content_length && this.content(cur_idx).isDigit) {
-        recursive(buf + this.content(cur_idx), cur_idx + 1, start_col, cur_col + 1)
-      } else  (new Token(buf, TokenType.Number, this.line, start_col, cur_col - 1), cur_idx, cur_col)
 
+    if (state.position >= content.size) {
+      (EOFToken, this)
+    } else {
+      val result = loop(state.mode.tokenizer)
+      result match {
+        case OperatorToken(txt) => (result, Scanner(content, state.copy(position=state.position + txt.size), print))
+        case IdentifierToken(txt) => (result, Scanner(content, state.copy(position=state.position + txt.size), print))
+        case SpaceToken(txt) => (result, Scanner(content, state.copy(position=state.position + txt.size), print))
+        case NumberToken(txt) => (result, Scanner(content, state.copy(position=state.position + txt.size), print))
+        case StringToken(txt) => (result, Scanner(content, state.copy(position=state.position + txt.size), print))
+        case NewLineToken(txt) => (result, Scanner(content, state.copy(position=state.position + txt.size), print))
+        case LParanToken => (result, Scanner(content, state.copy(position=state.position + 1), print))
+        case RParanToken => (result, Scanner(content, state.copy(position=state.position + 1), print))
+        case LCurlyBracket => (result, Scanner(content, state.copy(position=state.position + 1), print))
+        case RCurlyBracket => (result, Scanner(content, state.copy(position=state.position + 1), print))
+        case ColumnToken => (result, Scanner(content, state.copy(position=state.position + 1), print))
+        case CommaToken => (result, Scanner(content, state.copy(position=state.position + 1), print))
+        case DefToken => (result, Scanner(content, state.copy(position=state.position + 3), print))
+        case IfToken => (result, Scanner(content, state.copy(position=state.position + 2), print))
+        case ElseToken => (result, Scanner(content, state.copy(position=state.position + 4), print))
+        case EOFToken => (result, this)
+        case UnexpectedToken => (result, this)
+      }
     }
-    val (token, cur_idx, cur_col) = recursive("", this.index, this.col, this.col)
-    this.col = cur_col
-    this.index = cur_idx
-    token
+  }
+}
+
+object Scanner {
+  def apply(txt: String, print: (String) => Unit): Scanner = {
+    Scanner(txt, ScannerState(0, 0, 0, NormalMode), print)
   }
 }
