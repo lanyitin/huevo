@@ -20,7 +20,7 @@ class ScannerSpec extends FlatSpec with Matchers {
     |}
     """.stripMargin('|')
     val scanner = Scanner(content, println)
-    val tokens = takeWhile(scanner, (token) => token != EOFToken && token != UnexpectedToken)
+    val tokens = scanner.takeWhile((token) => token != EOFToken && token != UnexpectedToken)
       .filter(token => token match {
         case SpaceToken(_) => false
         case NewLineToken(_) => false
@@ -33,15 +33,4 @@ class ScannerSpec extends FlatSpec with Matchers {
     }
   }
 
-  def takeWhile(scanner: Scanner, p: (Token) => Boolean): List[Token] = {
-    def loop(scanner: Scanner, acc: List[Token]): List[Token] = {
-      val (token, next_state) = scanner.nextToken
-      if (!p(token)) {
-        token :: acc
-      } else {
-        loop(next_state, token :: acc)
-      }
-    }
-    loop(scanner, Nil).reverse
-  }
 }

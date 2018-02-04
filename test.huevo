@@ -1,0 +1,12 @@
+def add(a: Int, b: Int): Int = {
+    a - b;
+    a / b;
+    a * b;
+    a + b;
+};
+
+def apply(arg1: Int, arg2: Int, func: (Int, Int) => Int): Int = {
+    func(arg1, arg2);
+};
+
+add(a, b) + 3 + 4 * add(b,c + 1) + (a + b) + apply(1,2, add);

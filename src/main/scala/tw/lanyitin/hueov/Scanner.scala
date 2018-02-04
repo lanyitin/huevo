@@ -91,6 +91,17 @@ case class Scanner(val content: String, state: ScannerState, print: (String) => 
       }
     }
   }
+  def takeWhile(p: (Token) => Boolean): List[Token] = {
+    def loop(scanner: Scanner, acc: List[Token]): List[Token] = {
+      val (token, next_state) = scanner.nextToken
+      if (!p(token)) {
+        token :: acc
+      } else {
+        loop(next_state, token :: acc)
+      }
+    }
+    loop(this, Nil).reverse
+  }
 }
 
 object Scanner {
