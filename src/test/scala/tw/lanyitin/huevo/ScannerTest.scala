@@ -33,4 +33,11 @@ class ScannerSpec extends FlatSpec with Matchers {
     }
   }
 
+  "A Parser" should "able to parse arithmatic expression" in {
+    val content = """
+    | 1 + 2 * 3 / 4 * (1 + 2) / (2 * 4) + (( 1 + 2) * 3)
+    """.stripMargin('|')
+    val scanner = Scanner(content, println)
+    println(Parser.parse(scanner))
+  }
 }

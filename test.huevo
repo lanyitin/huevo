@@ -1,12 +1,30 @@
-def add(a: Int, b: Int): Int = {
-    a - b;
-    a / b;
-    a * b;
-    a + b;
-};
+def add(a: Number, b: Number): Number = {
+    a - b
+    a / b
+    a * b
+    a + b
+}
 
-def apply(arg1: Int, arg2: Int, func: (Int, Int) => Int): Int = {
+def apply(arg1: Number, arg2: Number, func: (Number, Number) => Number): Number = {
     func(arg1, arg2);
-};
+}
 
-add(a, b) + 3 + 4 * add(b,c + 1) + (a + b) + apply(1,2, add);
+def max(a: Number, b: Number): Number = {
+    if (a > b) {
+        a
+    } else {
+        b
+    }
+}
+
+def compare(a: Number, b: Number): Number = {
+    if (a == b) {
+        0
+    } else if (a > b){
+        1
+    } else {
+        2
+    }
+}
+
+add(a, b) + 3 + 4 * add(b,c + 1) + (a + b) + apply(1,2, add)
