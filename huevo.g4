@@ -36,13 +36,13 @@ DIGIT: [0-9];
 
 prog: expressions EOF;
 expressions: (expression expr_sep)+;
-expression: fun_decl|function_call|arith_expression|if_expression;
+expression: fun_def|function_call|arith_expression|if_expression;
 
 function_call: IDENTIFIER LPARAN (expression (COMMA expression)*)? RPARAN;
-fun_def: DEF_TOKEN IDENTIFIER LPARAN argument_list RPARAN COLUMN type;
+fun_decl: DEF_TOKEN IDENTIFIER LPARAN argument_list RPARAN COLUMN type;
 argument_list: argument (COMMA argument)* |;
 argument: IDENTIFIER COLUMN type;
-fun_decl: fun_def EQUAL LCURY NEWLINE? expressions NEWLINE? RCURY;
+fun_def: fun_decl EQUAL LCURY NEWLINE? expressions NEWLINE? RCURY;
 func_type: LPARAN (CLASSIFIER (COMMA CLASSIFIER)*)? RPARAN EQUAL GREAT_THAN CLASSIFIER;
 
 arith_expression: arith_term arith_term_op arith_expression | arith_term;

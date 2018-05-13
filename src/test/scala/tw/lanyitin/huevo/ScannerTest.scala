@@ -6,38 +6,4 @@ import java.io.FileWriter
 
 class ScannerSpec extends FlatSpec with Matchers {
 
-  "A Scanner" should "able to find tokens for function declaration" in {
-    val content = """
-    |def add(a: Number, b: Number): Number = {
-    |  a + b + (1 * 1 / 1) - 1
-    |}
-    |def addTwice(a: Number, b: Number): Number = {
-    |  if (b > 0) {
-    |    add(add(a, b), b)
-    |  } else {
-    |    a
-    |  }
-    |}
-    """.stripMargin('|')
-    val scanner = Scanner(content, println)
-    val tokens = scanner.takeWhile((token) => token != EOFToken && token != UnexpectedToken)
-      .filter(token => token match {
-        case SpaceToken(_) => false
-        case NewLineToken(_) => false
-        case default => true
-      })
-    if (tokens.contains(UnexpectedToken)) {
-      fail()
-    } else {
-      succeed
-    }
-  }
-
-  "A Parser" should "able to parse arithmatic expression" in {
-    val content = """
-    | 1 + 2 * 3 / 4 * (1 + 2) / (2 * 4) + (( 1 + 2) * 3)
-    """.stripMargin('|')
-    val scanner = Scanner(content, println)
-    println(Parser.parse(scanner))
-  }
 }
