@@ -6,19 +6,9 @@ import java.io.FileWriter
 
 class ParserSpec extends FlatSpec with Matchers {
   import TokenType._
-
-  "A Parser" should "able to parse arithmatic expression" in {
+  // TODO: more test cases
+  "A Parser" should "be able to parse function definition" in {
     val content = """
-    | 1 + 2 * 3 / 4 * (1 + 2) / (2 * 4) + (( 1 + 2) * 3)
-    """.stripMargin('|').trim()
-    val scanner = Scanner(content, println)
-    Parser.parse(scanner)
-
-    val content2 = "a + c + (1 * 1 / 1) - 1"
-    println(Parser.parse(Scanner(content2, println))._1)
-  }
-  it should "be able to parse function definition" in {
-          val content = """
     |def add(a: Number, b: Number): Number = {
     |  a + b + (1 * 1 / 1) - 1
     |}
@@ -30,9 +20,10 @@ class ParserSpec extends FlatSpec with Matchers {
     |  }
     |}
     """.stripMargin('|').trim()
-    val scanner = Scanner(content, println)
-    val (tree, _) = Parser.parse(scanner)
-    println(Parser.gen_graphviz(tree))
+    val scanner = Scanner(content)
+    val (tree, state) = Parser.parse(scanner)
+    // println(state.content.substring(state.state.position))
+    // println(tree.gen_graphviz)
   }
   
 }
