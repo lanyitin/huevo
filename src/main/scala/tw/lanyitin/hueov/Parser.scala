@@ -42,6 +42,8 @@ object Parser {
       parse_arith_expression(scanner2)
     } else if (next_token.tokenType == IfToken) {
       parse_if_expression(scanner2)
+    } else if (next_token.tokenType == CommentBodyToken) {
+      parse_expression(scanner2.skip({var a = 2; (t: Token) => {a=a-1; a > 0}}))
     } else {
       throw new Exception(next_token.toString)
     }
@@ -63,7 +65,7 @@ object Parser {
     if (exp_result.isEmpty) {
       throw new Exception(scanner2.take(2).toString)
     }
-    val (else_path, scanner4) = if (exp_result.get._1.nextToken()._1.tokenType == IfToken) {
+    val (else_path, scanner4) = if (exp_result.get._1.nextToken._1.tokenType == IfToken) {
       parse_if_expression(exp_result.get._1)
     } else {
       exp_result = expect(exp_result.get._1, byType(LCurlyBracket))
@@ -114,7 +116,7 @@ object Parser {
   }
 
   def parse_type(scanner: Scanner): (Node, Scanner) = {
-    val (token, next_state) = scanner.nextToken()
+    val (token, next_state) = scanner.nextToken
     if (token.tokenType == IdentifierToken) {
       (Node(token, Nil), next_state)
     } else {
@@ -169,12 +171,12 @@ object Parser {
   }
 
   def parse_arith_factor(scanner: Scanner): (Node, Scanner) = {
-    val (token, scanner2) = scanner.nextToken()
+    val (token, scanner2) = scanner.nextToken
     token.tokenType match {
       case NumberToken | IdentifierToken => (Node(token, Nil), scanner2)
       case LParanToken => {
         val (arith_exp, scanner3) = parse_arith_expression(scanner2)
-        val (_, scanner4) = scanner3.nextToken()
+        val (_, scanner4) = scanner3.nextToken
         (arith_exp, scanner4)
       }
     }

@@ -22,8 +22,22 @@ class ParserSpec extends FlatSpec with Matchers {
     """.stripMargin('|').trim()
     val scanner = Scanner(content)
     val (tree, state) = Parser.parse(scanner)
-    // println(state.content.substring(state.state.position))
-    // println(tree.gen_graphviz)
+    if (state.nextToken._1.tokenType != EOFToken) {
+      fail()
+    }
   }
-  
+
+  "A Parser" should "be able to parse comment starts with #" in {
+    val content = """
+    |#this is a comment
+    |1 + 1 * 1 / 1
+    """.stripMargin('|').trim()
+    val scanner = Scanner(content)
+    val (tree, state) = Parser.parse(scanner)
+    if (state.nextToken._1.tokenType != EOFToken) {
+      fail()
+    }
+  }
+
+
 }
