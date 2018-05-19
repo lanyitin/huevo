@@ -21,9 +21,12 @@ class ParserSpec extends FlatSpec with Matchers {
     |}
     """.stripMargin('|').trim()
     val scanner = Scanner(content)
-    val (tree, state) = Parser.parse(scanner)
-    if (state.nextToken._1.tokenType != EOFToken) {
+    val result = Parser.parse(scanner)
+    if (result.isFailure) {
+      result.failed.get.printStackTrace
       fail()
+    } else {
+//      println(result.get._1.gen_graphviz)
     }
   }
 
@@ -33,9 +36,62 @@ class ParserSpec extends FlatSpec with Matchers {
     |1 + 1 * 1 / 1
     """.stripMargin('|').trim()
     val scanner = Scanner(content)
-    val (tree, state) = Parser.parse(scanner)
-    if (state.nextToken._1.tokenType != EOFToken) {
+    val result = Parser.parse(scanner)
+    if (result.isFailure) {
+      result.failed.get.printStackTrace
       fail()
+    } else {
+//      println(result.get._1.gen_graphviz)
+    }
+  }
+
+  "A Parser" should "be able to parse if expression without else" in {
+    val content = """
+    |if (a > b) {1 + 1}
+    """.stripMargin('|').trim()
+    val scanner = Scanner(content)
+    val result = Parser.parse(scanner)
+    if (result.isFailure) {
+      result.failed.get.printStackTrace
+      fail()
+    } else {
+//      println(result.get._1.gen_graphviz)
+    }
+  }
+
+  "A Parser" should "be able to parse if else" in {
+    val content = """
+    |if (a > b) {
+    |  1 + 1
+    |} else {
+    |  2 + 1
+    |}
+    """.stripMargin('|').trim()
+    val scanner = Scanner(content)
+    val result = Parser.parse(scanner)
+    if (result.isFailure) {
+      result.failed.get.printStackTrace
+      fail()
+    } else {
+//      println(result.get._1.gen_graphviz)
+    }
+  }
+
+  "A Parser" should "be able to parse if else if" in {
+    val content = """
+    |if (a > b) {
+    |  1 + 1
+    |} else if (a == b) {
+    |  2 + 1
+    |}
+    """.stripMargin('|').trim()
+    val scanner = Scanner(content)
+    val result = Parser.parse(scanner)
+    if (result.isFailure) {
+      result.failed.get.printStackTrace
+      fail()
+    } else {
+////      println(result.get._1.gen_graphviz)
     }
   }
 

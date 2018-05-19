@@ -65,13 +65,14 @@ case class NormalModeScanner(override val content: String, override val state: S
     (Pattern.compile("^(def)"), (txt: String, line: Integer, col: Integer) => new Token(DefToken, txt, line, col)) ::
     (Pattern.compile("^(if)"), (txt: String, line: Integer, col: Integer) => new Token(IfToken, txt, line, col)) ::
     (Pattern.compile("^(else)"), (txt: String, line: Integer, col: Integer) => new Token(ElseToken, txt, line, col)) ::
+    (Pattern.compile("^(true|false)"), (txt: String, line: Integer, col: Integer) => new Token(BooleanConstantToken, txt, line, col)) ::   
     (Pattern.compile("^([a-zA-Z][a-zA-Z0-9]*)"), (txt: String, line: Integer, col: Integer) => new Token(IdentifierToken, txt, line, col)) ::
     (Pattern.compile("^(\\r\\n|\\n|\\r)"), (txt: String, line: Integer, col: Integer) => new Token(NewLineToken, txt, line, col)) ::
     (Pattern.compile("^([\\t ]+)"), (txt: String, line: Integer, col: Integer) => new Token(SpaceToken, txt, line, col)) ::
     (Pattern.compile("^(\\d+)"), (txt: String, line: Integer, col: Integer) => new Token(NumberToken, txt, line, col)) ::
     (Pattern.compile("^(,)"), (txt: String, line: Integer, col: Integer) => new Token(CommaToken, txt, line, col)) ::
     (Pattern.compile("^(:)"), (txt: String, line: Integer, col: Integer) => new Token(ColumnToken, txt, line, col)) ::
-    (Pattern.compile("^(\\+|-|\\*|\\/|>|<|=)|and|or|>=|<="), (txt: String, line: Integer, col: Integer) => new Token(OperatorToken, txt, line, col)) ::
+    (Pattern.compile("^(\\+|-|\\*|\\/|>|<|==|and|or|>=|<=|=)"), (txt: String, line: Integer, col: Integer) => new Token(OperatorToken, txt, line, col)) ::
     (Pattern.compile("^(\\{)"), (txt: String, line: Integer, col: Integer) => new Token(LCurlyBracket, txt, line, col)) ::
     (Pattern.compile("^(\\})"), (txt: String, line: Integer, col: Integer) => new Token(RCurlyBracket, txt, line, col)) ::
     (Pattern.compile("^(\\()"), (txt: String, line: Integer, col: Integer) => new Token(LParanToken, txt, line, col)) ::
@@ -98,7 +99,6 @@ case class NormalModeScanner(override val content: String, override val state: S
       (new Token(EOFToken, "<EOF>", state.line, state.col), this)
     } else {
       val result = loop(tokenizers)
-      // TODO: refactoring follow code segment to ScannerState
       result.tokenType match {
         case OperatorToken => (result, NormalModeScanner(content, state.copy(position=state.position + result.txt.size,col=state.col+result.txt.size)))
         case IdentifierToken => (result, NormalModeScanner(content, state.copy(position=state.position + result.txt.size,col=state.col+result.txt.size)))
@@ -114,7 +114,7 @@ case class NormalModeScanner(override val content: String, override val state: S
         case IfToken => (result, NormalModeScanner(content, state.copy(position=state.position + 2,col=state.col+result.txt.size)))
         case ElseToken => (result, NormalModeScanner(content, state.copy(position=state.position + 4,col=state.col+result.txt.size)))
         case SpaceToken => NormalModeScanner(content, state.copy(position=state.position + result.txt.size,col=state.col+result.txt.size)).nextToken
-        case NewLineToken => (result, NormalModeScanner(content, state.copy(position=state.position + result.txt.size, col=0, line=state.line+1)))
+        case NewLineToken => NormalModeScanner(content, state.copy(position=state.position + result.txt.size, col=0, line=state.line+1)).nextToken
         case CommentHeadToken => CommentModeScanner(content, state.copy(position=state.position + result.txt.size,col=state.col+result.txt.size)).nextToken
         case EOFToken => (result, this)
         case UnexpectedToken => (result, this)

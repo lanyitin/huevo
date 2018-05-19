@@ -1,5 +1,7 @@
 package tw.lanyitin.huevo
 
+import scala.util.{Try, Success, Failure}
+
 object TokenType extends Enumeration {
   type TokenType = Value
 val SpaceToken = Value("SpaceToken") 
@@ -22,6 +24,7 @@ val OperatorToken = Value("OperatorToken")
 val CommentHeadToken = Value("CommentHeadToken")
 val CommentBodyToken = Value("CommentBodyToken")
 val QuoteToken = Value("QuoteToken")
+val BooleanConstantToken = Value("BooleanConstantToken")
 // TODO: is it possible to eliminate NotExistToken?
 val NotExistToken = Value("")
 }
@@ -45,63 +48,95 @@ sealed class Token(val tokenType: TokenType.TokenType, val txt: String, val line
 
 object MatcherGenerator {
   import TokenType._
-  type TokenMatcher = Scanner => (Boolean, Scanner, List[Token])
-  // TODO: making matchers printable
+  trait TokenMatcher {
+    def apply(scanner: Scanner): Try[(List[Token], Scanner)]
 
-  // TODO: implement following helper matchers
-  def zeroOrMore(matcher: TokenMatcher): TokenMatcher = ???
-  def oneOrMore(matcher: TokenMatcher): TokenMatcher = ???
-  def byType(tokenType: TokenType): TokenMatcher = {
-    (scanner) => {
-      val (token, next) = scanner.nextToken
-      if (token.tokenType == tokenType) {
-        (true, next, List(token))
-      } else {
-        (false, scanner, Nil)
+    def and (m2: TokenMatcher): TokenMatcher = {
+      val self = this
+      new TokenMatcher {
+        def apply(scanner: Scanner): Try[(List[Token], Scanner)] = {
+          val r1 = self(scanner)
+          if (r1.isFailure) {
+            r1
+          } else {
+            m2(scanner)
+          }
+        }
+
+        override def toString: String = "[" + self.toString + "&" + m2.toString + "]"
       }
+    }
+
+    def or (m2: TokenMatcher): TokenMatcher = {
+      val self = this
+      new TokenMatcher {
+        def apply(scanner: Scanner): Try[(List[Token], Scanner)] = {
+          val r1 = self(scanner)
+          if (r1.isSuccess) {
+            r1
+          } else {
+            m2(scanner)
+          }
+        }
+
+        override def toString: String = s"(${self.toString} | ${m2.toString})"
+      }
+    }
+
+    def +(m2: TokenMatcher): TokenMatcher = {
+      Con(this, m2)
     }
   }
 
-  def byText(txt: String): TokenMatcher = {
-    (scanner) => {
-      val (token, next) = scanner.nextToken
-      if (token.txt == txt) {
-        (true, next, List(token))
-      } else {
-        (false, scanner, Nil)
-      }
-    }
-  }
+  def oneOrZero(matcher: TokenMatcher): TokenMatcher = matcher or epsilon
 
-  def and(m1: TokenMatcher, m2: TokenMatcher): TokenMatcher = {
-    (scanner) => {
-      val (r1, next, token) = m1(scanner)
-      val (r2, _, _) = m2(scanner)
-      if (r1 && r2) {
-        (true, next, token)
+  case class Con(m1: TokenMatcher, m2: TokenMatcher) extends TokenMatcher {
+    def apply(scanner: Scanner): Try[(List[Token], Scanner)] = {
+      val r1 = m1(scanner)
+      if (r1.isFailure) {
+        r1
       } else {
-        (false, scanner, Nil)
-      }
-    }
-  }
-
-  def or(m1: TokenMatcher, m2: TokenMatcher): TokenMatcher = {
-    (scanner) => {
-      val (r1, next, token) = m1(scanner)
-      if (r1) {
-        (true, next, token)
-      } else {
-        val (r2, next2, token2) = m2(scanner)
-        if (r2) {
-          (true, next2, token2)
+        val r2 = m2(r1.get._2)
+        if (r2.isSuccess) {
+          Success(r1.get._1 ::: r2.get._1, r2.get._2)
         } else {
-          (false, scanner, Nil)
+          r2
         }
       }
     }
+
+    override def toString: String = {
+      m1.toString + " => " + m2.toString
+    }
   }
 
-  def epsilon: TokenMatcher = {
-    (scanner) => (true, scanner, Nil)
+  case class byType(tokenType: TokenType) extends TokenMatcher {
+    def apply(scanner: Scanner) : Try[(List[Token], Scanner)] = {
+      val (token, next) = scanner.nextToken
+      if (token.tokenType == tokenType) {
+        Success((token :: Nil, next))
+      } else {
+        Failure(new Exception(s"expected token: ${tokenType.toString}, actual token: ${token.toString}"))
+      }
+    }
+
+    override def toString: String = tokenType.toString
+  }
+  case class byText(txt: String) extends TokenMatcher {
+    def apply(scanner: Scanner) : Try[(List[Token], Scanner)] = {
+      val (token, next) = scanner.nextToken
+      if (token.txt == txt) {
+        Success((token :: Nil, next))
+      } else {
+        Failure(new Exception(s"expected token: ${txt}, actual token: ${token.toString}"))
+      }
+    }
+
+    override def toString: String = txt
+  }
+
+  case object epsilon extends TokenMatcher{
+    def apply(scanner: Scanner) : Try[(List[Token], Scanner)] = Success((List(), scanner))
+    override def toString: String = "<epsilon>"
   }
 }
