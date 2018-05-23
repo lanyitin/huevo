@@ -31,6 +31,16 @@ abstract class Scanner(val content: String, val state: ScannerState) {
     _loop(this, Nil, p)._1
   }
 
+  def skip(num: Integer): Scanner = {
+    _loop(this, Nil, {
+      var n: Integer = num + 1
+      (t: Token) => {
+        n = n - 1
+        n > 0
+      }
+    })._1
+  }
+
   def take(num: Int): List[Token] = {
     var n = num
     val fn = (_: Token) => {n-=1;n > 0}
@@ -72,7 +82,19 @@ case class NormalModeScanner(override val content: String, override val state: S
     (Pattern.compile("^(\\d+)"), (txt: String, line: Integer, col: Integer) => new Token(NumberToken, txt, line, col)) ::
     (Pattern.compile("^(,)"), (txt: String, line: Integer, col: Integer) => new Token(CommaToken, txt, line, col)) ::
     (Pattern.compile("^(:)"), (txt: String, line: Integer, col: Integer) => new Token(ColumnToken, txt, line, col)) ::
-    (Pattern.compile("^(\\+|-|\\*|\\/|>|<|==|and|or|>=|<=|=)"), (txt: String, line: Integer, col: Integer) => new Token(OperatorToken, txt, line, col)) ::
+    (Pattern.compile("^(==)"), (txt: String, line: Integer, col: Integer) => new Token(EqualToken, txt, line, col)) ::
+    (Pattern.compile("^(>=)"), (txt: String, line: Integer, col: Integer) => new Token(GreaterEqualToken, txt, line, col)) ::
+    (Pattern.compile("^(>=)"), (txt: String, line: Integer, col: Integer) => new Token(LessEqualToken, txt, line, col)) ::
+    (Pattern.compile("^(!=)"), (txt: String, line: Integer, col: Integer) => new Token(NotEqualToken, txt, line, col)) ::    
+    (Pattern.compile("^(>)"), (txt: String, line: Integer, col: Integer) => new Token(GreaterToken, txt, line, col)) ::
+    (Pattern.compile("^(<)"), (txt: String, line: Integer, col: Integer) => new Token(LessToken, txt, line, col)) ::        
+    (Pattern.compile("^(and)"), (txt: String, line: Integer, col: Integer) => new Token(BooleanAndToken, txt, line, col)) ::
+    (Pattern.compile("^(or)"), (txt: String, line: Integer, col: Integer) => new Token(BooleanOrToken, txt, line, col)) ::
+    (Pattern.compile("^(=)"), (txt: String, line: Integer, col: Integer) => new Token(AssignToken, txt, line, col)) ::
+    (Pattern.compile("^(\\*)"), (txt: String, line: Integer, col: Integer) => new Token(ArithMultToken, txt, line, col)) ::
+    (Pattern.compile("^(/)"), (txt: String, line: Integer, col: Integer) => new Token(ArithDivideToken, txt, line, col)) ::
+    (Pattern.compile("^(\\+)"), (txt: String, line: Integer, col: Integer) => new Token(PlusToken, txt, line, col)) ::
+    (Pattern.compile("^(-)"), (txt: String, line: Integer, col: Integer) => new Token(MinusToken, txt, line, col)) ::
     (Pattern.compile("^(\\{)"), (txt: String, line: Integer, col: Integer) => new Token(LCurlyBracket, txt, line, col)) ::
     (Pattern.compile("^(\\})"), (txt: String, line: Integer, col: Integer) => new Token(RCurlyBracket, txt, line, col)) ::
     (Pattern.compile("^(\\()"), (txt: String, line: Integer, col: Integer) => new Token(LParanToken, txt, line, col)) ::
@@ -100,24 +122,17 @@ case class NormalModeScanner(override val content: String, override val state: S
     } else {
       val result = loop(tokenizers)
       result.tokenType match {
-        case OperatorToken => (result, NormalModeScanner(content, state.copy(position=state.position + result.txt.size,col=state.col+result.txt.size)))
-        case IdentifierToken => (result, NormalModeScanner(content, state.copy(position=state.position + result.txt.size,col=state.col+result.txt.size)))
-        case NumberToken => (result, NormalModeScanner(content, state.copy(position=state.position + result.txt.size,col=state.col+result.txt.size)))
-        case StringToken => (result, NormalModeScanner(content, state.copy(position=state.position + result.txt.size,col=state.col+result.txt.size)))
-        case LParanToken => (result, NormalModeScanner(content, state.copy(position=state.position + 1,col=state.col+result.txt.size)))
-        case RParanToken => (result, NormalModeScanner(content, state.copy(position=state.position + 1,col=state.col+result.txt.size)))
-        case LCurlyBracket => (result, NormalModeScanner(content, state.copy(position=state.position + 1,col=state.col+result.txt.size)))
-        case RCurlyBracket => (result, NormalModeScanner(content, state.copy(position=state.position + 1,col=state.col+result.txt.size)))
-        case ColumnToken => (result, NormalModeScanner(content, state.copy(position=state.position + 1,col=state.col+result.txt.size)))
-        case CommaToken => (result, NormalModeScanner(content, state.copy(position=state.position + 1,col=state.col+result.txt.size)))
-        case DefToken => (result, NormalModeScanner(content, state.copy(position=state.position + 3,col=state.col+result.txt.size)))
-        case IfToken => (result, NormalModeScanner(content, state.copy(position=state.position + 2,col=state.col+result.txt.size)))
-        case ElseToken => (result, NormalModeScanner(content, state.copy(position=state.position + 4,col=state.col+result.txt.size)))
+        case EqualToken|GreaterEqualToken|LessEqualToken|GreaterToken|LessToken|
+             NotEqualToken|BooleanAndToken|BooleanOrToken|
+             ArithDivideToken|ArithMultToken|PlusToken|MinusToken|
+             IdentifierToken|NumberToken|StringToken|LParanToken|RParanToken|
+             LCurlyBracket|RCurlyBracket|ColumnToken|CommaToken|DefToken|IfToken|ElseToken|
+             AssignToken
+         => (result, NormalModeScanner(content, state.copy(position=state.position + result.txt.size,col=state.col+result.txt.size)))
         case SpaceToken => NormalModeScanner(content, state.copy(position=state.position + result.txt.size,col=state.col+result.txt.size)).nextToken
         case NewLineToken => NormalModeScanner(content, state.copy(position=state.position + result.txt.size, col=0, line=state.line+1)).nextToken
         case CommentHeadToken => CommentModeScanner(content, state.copy(position=state.position + result.txt.size,col=state.col+result.txt.size)).nextToken
-        case EOFToken => (result, this)
-        case UnexpectedToken => (result, this)
+        case EOFToken | UnexpectedToken => (result, this)
       }
     }
   }

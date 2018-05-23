@@ -4,27 +4,39 @@ import scala.util.{Try, Success, Failure}
 
 object TokenType extends Enumeration {
   type TokenType = Value
-val SpaceToken = Value("SpaceToken") 
-val NewLineToken = Value("NewLineToken") 
-val EOFToken = Value("EOFToken") 
+val SpaceToken = Value("<space>") 
+val NewLineToken = Value("<newline>") 
+val EOFToken = Value("<eof>") 
 val UnexpectedToken = Value("UnexpectedToken") 
-val NumberToken = Value("NumberToken") 
-val StringToken = Value("StringToken") 
-val LParanToken = Value("LParanToken") 
-val RParanToken = Value("RParanToken") 
-val LCurlyBracket = Value("LCurlyBracket") 
-val RCurlyBracket = Value("RCurlyBracket") 
-val CommaToken = Value("CommaToken") 
-val ColumnToken = Value("ColumnToken") 
-val DefToken = Value("DefToken") 
-val IfToken = Value("IfToken") 
-val ElseToken = Value("ElseToken") 
-val IdentifierToken = Value("IdentifierToken") 
-val OperatorToken = Value("OperatorToken")
-val CommentHeadToken = Value("CommentHeadToken")
-val CommentBodyToken = Value("CommentBodyToken")
-val QuoteToken = Value("QuoteToken")
-val BooleanConstantToken = Value("BooleanConstantToken")
+val NumberToken = Value("<number>") 
+val StringToken = Value("<string>") 
+val LParanToken = Value("(") 
+val RParanToken = Value(")") 
+val LCurlyBracket = Value("{") 
+val RCurlyBracket = Value("}") 
+val CommaToken = Value(",") 
+val ColumnToken = Value(":") 
+val DefToken = Value("def") 
+val IfToken = Value("if") 
+val ElseToken = Value("else") 
+val IdentifierToken = Value("<identifier>") 
+val EqualToken = Value("==") 
+val GreaterEqualToken = Value(">=")
+val LessEqualToken = Value("<=") 
+val NotEqualToken = Value("!=") 
+val GreaterToken = Value(">")
+val LessToken = Value("<")
+val BooleanAndToken = Value("and")
+val BooleanOrToken = Value("or")
+val ArithMultToken = Value("*")
+val ArithDivideToken = Value("/")
+val PlusToken = Value("+")
+val MinusToken = Value("-")
+val AssignToken = Value("=")
+val CommentHeadToken = Value("#")
+val CommentBodyToken = Value("<comment>")
+val QuoteToken = Value("\"")
+val BooleanConstantToken = Value("<boolean>")
 // TODO: is it possible to eliminate NotExistToken?
 val NotExistToken = Value("")
 }
@@ -45,6 +57,7 @@ sealed class Token(val tokenType: TokenType.TokenType, val txt: String, val line
     s"${tokenType}('${espedTxt}')"
   }
 }
+object NullToken extends Token(TokenType.NotExistToken, "")
 
 object MatcherGenerator {
   import TokenType._
