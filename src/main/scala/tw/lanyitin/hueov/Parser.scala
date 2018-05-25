@@ -35,13 +35,13 @@ object Parser {
       }
     }
 
-    val r = expect(scanner, byType(LCurlyBracket))
+    val r = expect(scanner, LCurlyBracket)
     if (r.isFailure) {
       parse_expression(scanner)
     } else {
       loop(r.get._2).flatMap(r => {
         val (exprs: List[Node], scanner2: Scanner) = r
-        expect(scanner2, byType(RCurlyBracket)).flatMap(er => {
+        expect(scanner2, RCurlyBracket).flatMap(er => {
           Success((Node(NullToken(), r._1), er._2))
         })
       })
@@ -65,12 +65,7 @@ object Parser {
           parse_boolean_expression(scanner)
         case LParanToken =>
           parse_function_call(scanner)
-        case CommaToken | RParanToken | RCurlyBracket=> {
-          // TODO: in case of parsing argument,
-          // we have to distinguish the type of expression
-          parse_boolean_expression(scanner)
-        }
-        case EOFToken =>
+        case CommaToken | RParanToken | RCurlyBracket | EOFToken =>
           val (t, s) = scanner.nextToken
           Success((Node(t, Nil), s))
       }
@@ -89,12 +84,12 @@ object Parser {
   def parse_function_call_args(scanner: Scanner): Try[(List[Node], Scanner)] = {
     @tailrec
     def parse_function_call_args_rest(scanner: Scanner, acc: List[Node] = Nil): Try[(List[Node], Scanner)] = {
-      val exp = expect(scanner, byType(RParanToken))
+      val exp = expect(scanner, RParanToken)
       if (exp.isSuccess) {
         Success((acc.reverse, scanner))
       } else {
         val r = for (
-          (_, scanner2) <- expect(scanner, byType(CommaToken));
+          (_, scanner2) <- expect(scanner, CommaToken);
           (expr, scanner3) <- parse_expression(scanner2)
         ) yield (expr, scanner3)
         if (r.isFailure) {
@@ -106,7 +101,7 @@ object Parser {
       }
     }
 
-    val exp = expect(scanner, byType(RParanToken))
+    val exp = expect(scanner, RParanToken)
     if (exp.isSuccess) {
       Success((Nil, scanner))
     } else {
@@ -124,7 +119,7 @@ object Parser {
     for (
       (function_name, scanner2) <- expect(scanner, byType(IdentifierToken) + byType(LParanToken));
       (args, scanner3) <- parse_function_call_args(scanner2);
-      (_, scanner4) <- expect(scanner3, byType(RParanToken))
+      (_, scanner4) <- expect(scanner3, RParanToken)
      ) yield ((new Node(function_name(0), args), scanner4))
   }
 
@@ -136,11 +131,11 @@ object Parser {
       // parse condition
       parse_boolean_expression(scanner2).flatMap(r2 => {
         val (condition: Node, scanner3: Scanner) = r2
-        expect(scanner3, byType(RParanToken)).flatMap(r3 => {
+        expect(scanner3, RParanToken).flatMap(r3 => {
           val (_, scanner4: Scanner) = r3
           parse_expressions_block(scanner4).flatMap(r4 => {
             val (true_path: Node, scanner5: Scanner) = r4
-            expect(scanner5, oneOrZero(byType(ElseToken))).flatMap(r5 => {
+            expect(scanner5, oneOrZero(ElseToken)).flatMap(r5 => {
               val (tokens: List[Token], scanner6: Scanner) = r5
               if (tokens.size == 1) {
                 parse_expressions_block(scanner6).flatMap(r6 => {
@@ -160,7 +155,7 @@ object Parser {
   def parse_boolean_expression(scanner: Scanner): Try[(Node, Scanner)] = {
     parse_boolean_term(scanner).flatMap(r1 => {
       val (boolean_term: Node, scanner2: Scanner) = r1
-      expect(scanner2, byType(BooleanAndToken) or byType(BooleanOrToken)).flatMap(r2 => {
+      expect(scanner2, BooleanAndToken or BooleanOrToken).flatMap(r2 => {
         val (tokens: List[Token], scanner3: Scanner) = r2
         parse_boolean_expression(scanner3).flatMap(r3 => {
           val (expr2: Node, scanner4: Scanner) = r3
@@ -175,9 +170,9 @@ object Parser {
     parse_arith_expression(scanner).flatMap(r1 => {
       val (_expr1: Node, scanner2: Scanner) = r1
       expr1 = _expr1
-      expect(scanner2, byType(GreaterToken) or byType(LessToken) or
-                       byType(GreaterEqualToken) or byType(LessEqualToken) or
-                       byType(EqualToken) or byType(NotEqualToken)
+      expect(scanner2, GreaterToken or LessToken or
+                       GreaterEqualToken or LessEqualToken or
+                       EqualToken or NotEqualToken
       )
     }).flatMap(r2 => {
       val (tokens: List[Token], scanner3: Scanner) = r2
@@ -186,7 +181,7 @@ object Parser {
         Success((Node(tokens(0), expr1 :: expr2 :: Nil), scanner4))
       })
     }).orElse({
-      expect(scanner, (byType(IdentifierToken) or byType(BooleanConstantToken))).flatMap(r1 => {
+      expect(scanner, (IdentifierToken or BooleanConstantToken)).flatMap(r1 => {
         val (tokens: List[Token], scanner2: Scanner) = r1
         Success(Node(tokens(0), Nil), scanner2)
       })
@@ -198,7 +193,7 @@ object Parser {
     parse_function_declaration(scanner).flatMap(r1 => {
       val (_fun_decl: Node, scanner2: Scanner) = r1
       fun_decl = _fun_decl
-      expect(scanner2, byType(AssignToken))
+      expect(scanner2, AssignToken)
     }).flatMap(r2 => {
       val (tokens: List[Token], scanner3: Scanner) = r2
       parse_expressions_block(scanner3).flatMap(r3 => {
@@ -261,7 +256,7 @@ object Parser {
   def parse_arith_expression(scanner: Scanner): Try[(Node, Scanner)] = {
     parse_arith_term(scanner).flatMap(r1 => {
       val (arith_term: Node, scanner2: Scanner) = r1
-      val matcher = byType(PlusToken) or byType(MinusToken)
+      val matcher = PlusToken or MinusToken
       matcher(scanner2).flatMap( r2 => {
         val (token: List[Token], scanner3: Scanner) = r2
         parse_arith_expression(scanner3).flatMap(r3 => {
@@ -275,7 +270,7 @@ object Parser {
   def parse_arith_term(scanner: Scanner): Try[(Node, Scanner)] = {
     parse_arith_factor(scanner).flatMap( (r1) => {
       val (arith_factor: Node, scanner2: Scanner) = r1
-      val matcher = byType(ArithMultToken) or byType(ArithDivideToken)
+      val matcher = ArithMultToken or ArithDivideToken
       matcher(scanner2).flatMap( (r2) => {
         val (op_token, scanner3) = r2
         parse_arith_term(scanner3).flatMap( (r3) => {
@@ -293,7 +288,7 @@ object Parser {
       case LParanToken => {
         parse_arith_expression(scanner2).flatMap(r1 => {
           val (arith_exp: Node, scanner3: Scanner) = r1
-          expect(scanner3, byType(RParanToken)).flatMap(r2 => {
+          expect(scanner3, RParanToken).flatMap(r2 => {
             val (token: List[Token], scanner4: Scanner) = r2
             Success((arith_exp, scanner4))
           })

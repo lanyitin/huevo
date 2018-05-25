@@ -135,17 +135,9 @@ object MatcherGenerator {
 
     override def toString: String = tokenType.toString
   }
-  case class byText(txt: String) extends TokenMatcher {
-    def apply(scanner: Scanner) : Try[(List[Token], Scanner)] = {
-      val (token, next) = scanner.nextToken
-      if (token.txt == txt) {
-        Success((token :: Nil, next))
-      } else {
-        Failure(new Exception(s"expected token: ${txt}, actual token: ${token.toString}"))
-      }
-    }
 
-    override def toString: String = txt
+  implicit def tokenTypeToMatcher(token: TokenType): TokenMatcher = {
+    byType(token)
   }
 
   case object epsilon extends TokenMatcher{
