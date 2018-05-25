@@ -24,9 +24,9 @@ class ParserSpec extends FlatSpec with Matchers {
     val result = Parser.parse(scanner)
     if (result.isFailure) {
       result.failed.get.printStackTrace
-      fail()
+      fail(result.failed.get)
     } else {
-//      println(result.get._1.gen_graphviz)
+     println(result.get._1.gen_graphviz)
     }
   }
 
@@ -39,9 +39,9 @@ class ParserSpec extends FlatSpec with Matchers {
     val result = Parser.parse(scanner)
     if (result.isFailure) {
       result.failed.get.printStackTrace
-      fail()
+      fail(result.failed.get)
     } else {
-//      println(result.get._1.gen_graphviz)
+     println(result.get._1.gen_graphviz)
     }
   }
 
@@ -53,9 +53,9 @@ class ParserSpec extends FlatSpec with Matchers {
     val result = Parser.parse(scanner)
     if (result.isFailure) {
       result.failed.get.printStackTrace
-      fail()
+      fail(result.failed.get)
     } else {
-//      println(result.get._1.gen_graphviz)
+     println(result.get._1.gen_graphviz)
     }
   }
 
@@ -71,9 +71,9 @@ class ParserSpec extends FlatSpec with Matchers {
     val result = Parser.parse(scanner)
     if (result.isFailure) {
       result.failed.get.printStackTrace
-      fail()
+      fail(result.failed.get)
     } else {
-//      println(result.get._1.gen_graphviz)
+     println(result.get._1.gen_graphviz)
     }
   }
 
@@ -89,9 +89,9 @@ class ParserSpec extends FlatSpec with Matchers {
     val result = Parser.parse(scanner)
     if (result.isFailure) {
       result.failed.get.printStackTrace
-      fail()
+      fail(result.failed.get)
     } else {
-////      println(result.get._1.gen_graphviz)
+     println(result.get._1.gen_graphviz)
     }
   }
 

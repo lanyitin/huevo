@@ -57,7 +57,7 @@ sealed class Token(val tokenType: TokenType.TokenType, val txt: String, val line
     s"${tokenType}('${espedTxt}')"
   }
 }
-object NullToken extends Token(TokenType.NotExistToken, "")
+case class NullToken() extends Token(TokenType.NotExistToken, "")
 
 object MatcherGenerator {
   import TokenType._

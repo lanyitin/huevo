@@ -3,6 +3,7 @@ import tw.lanyitin.huevo.Token
 object NodeType extends Enumeration {
     type NodeType = Value
     val Expressions = Value("Expressions")
+    val Expression = Value("Expression")
     val FunctionDefinition = Value("FunctionDefinition")
     val FunctionCall = Value("FunctionCall")
     val IfExpression = Value("IfExpression")

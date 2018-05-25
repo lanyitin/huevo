@@ -11,12 +11,11 @@ object Parser {
   def parse(scanner: Scanner, acc : List[Node] = Nil): Try[(Node, Scanner)] = {
     val next_token = scanner.take(1)(0)
     if (next_token.tokenType == EOFToken) {
-      Success((Node(NullToken, acc.reverse), scanner))
+      Success((Node(NullToken(), acc.reverse), scanner))
     } else {
       parse_expression(scanner).flatMap(r => {
         parse(r._2, r._1 :: acc)
       })
-      
     }
   }
 
@@ -43,7 +42,7 @@ object Parser {
       loop(r.get._2).flatMap(r => {
         val (exprs: List[Node], scanner2: Scanner) = r
         expect(scanner2, byType(RCurlyBracket)).flatMap(er => {
-          Success((Node(NullToken, r._1), er._2))
+          Success((Node(NullToken(), r._1), er._2))
         })
       })
     }
@@ -66,6 +65,11 @@ object Parser {
           parse_boolean_expression(scanner)
         case LParanToken =>
           parse_function_call(scanner)
+        case CommaToken | RParanToken | RCurlyBracket=> {
+          // TODO: in case of parsing argument,
+          // we have to distinguish the type of expression
+          parse_boolean_expression(scanner)
+        }
         case EOFToken =>
           val (t, s) = scanner.nextToken
           Success((Node(t, Nil), s))
@@ -82,7 +86,47 @@ object Parser {
     }
   }
 
-  def parse_function_call(scanner: Scanner): Try[(Node, Scanner)] = ???
+  def parse_function_call_args(scanner: Scanner): Try[(List[Node], Scanner)] = {
+    @tailrec
+    def parse_function_call_args_rest(scanner: Scanner, acc: List[Node] = Nil): Try[(List[Node], Scanner)] = {
+      val exp = expect(scanner, byType(RParanToken))
+      if (exp.isSuccess) {
+        Success((acc.reverse, scanner))
+      } else {
+        val r = for (
+          (_, scanner2) <- expect(scanner, byType(CommaToken));
+          (expr, scanner3) <- parse_expression(scanner2)
+        ) yield (expr, scanner3)
+        if (r.isFailure) {
+          Failure(r.failed.get)
+        } else {
+          parse_function_call_args_rest(r.get._2, r.get._1 :: acc)
+        }
+        
+      }
+    }
+
+    val exp = expect(scanner, byType(RParanToken))
+    if (exp.isSuccess) {
+      Success((Nil, scanner))
+    } else {
+      val r = parse_expression(scanner)
+      if (r.isFailure) {
+        Failure(r.failed.get)
+      } else {
+        val (exp: Node, scanner2: Scanner) = r.get
+        parse_function_call_args_rest(scanner2, exp :: Nil)
+      }
+    }
+  }
+
+  def parse_function_call(scanner: Scanner): Try[(Node, Scanner)] = {
+    for (
+      (function_name, scanner2) <- expect(scanner, byType(IdentifierToken) + byType(LParanToken));
+      (args, scanner3) <- parse_function_call_args(scanner2);
+      (_, scanner4) <- expect(scanner3, byType(RParanToken))
+     ) yield ((new Node(function_name(0), args), scanner4))
+  }
 
   def parse_if_expression(scanner: Scanner): Try[(Node, Scanner)] = {
     // accept if (
@@ -197,7 +241,7 @@ object Parser {
         parse_type(scanner2).flatMap(r2 => {
           val (type_node: Node, scanner3: Scanner) = r2
           val (rest_args, scanner4) = parse_rest_arg_list(scanner3)
-          Success((Node(NullToken, Node(tokens(0), type_node::Nil) :: rest_args), scanner4))
+          Success((Node(NullToken(), Node(tokens(0), type_node::Nil) :: rest_args), scanner4))
         })
     })
   }
