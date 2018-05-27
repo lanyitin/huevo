@@ -9,14 +9,19 @@ import scala.language.implicitConversions
 object Parser {
   import MatcherGenerator._
 
+  @tailrec
   def parse(scanner: Scanner, acc: List[Node] = Nil): Try[(Node, Scanner)] = {
     val next_token = scanner.take(1)(0)
     if (next_token.tokenType == EOFToken) {
       Success((Node(NullToken(), acc.reverse), scanner))
     } else {
-      parse_expression(scanner).flatMap(r => {
-        parse(r._2, r._1 :: acc)
-      })
+      val result = parse_expression(scanner)
+      if (result.isFailure) {
+        Failure(result.failed.get)
+      } else {
+        val (expr: Node, scanner2: Scanner) = result.get
+        parse(scanner2, expr :: acc)
+      }
     }
   }
 
@@ -125,36 +130,24 @@ object Parser {
   }
 
   def parse_if_expression(scanner: Scanner): Try[(Node, Scanner)] = {
-    // accept if (
-    expect(scanner, byType(IfToken) + byType(LParanToken)).flatMap(r1 => {
-      val (tokens: List[Token], scanner2: Scanner) = r1
-      val first_token = tokens(0)
-      // parse condition
-      parse_boolean_expression(scanner2).flatMap(r2 => {
-        val (condition: Node, scanner3: Scanner) = r2
-        expect(scanner3, RParanToken).flatMap(r3 => {
-          val (_, scanner4: Scanner) = r3
-          parse_expressions_block(scanner4).flatMap(r4 => {
-            val (true_path: Node, scanner5: Scanner) = r4
-            expect(scanner5, oneOrZero(ElseToken)).flatMap(r5 => {
-              val (tokens: List[Token], scanner6: Scanner) = r5
-              if (tokens.size == 1) {
-                parse_expressions_block(scanner6).flatMap(r6 => {
-                  val (false_path: Node, scanner7) = r6
-                  Success(
-                    (Node(first_token,
-                          condition :: true_path :: false_path :: Nil),
-                     scanner7))
-                })
-              } else {
-                Success(
-                  (Node(first_token, condition :: true_path :: Nil), scanner6))
-              }
-            })
-          })
-        })
-      })
-    })
+    for ((tokens, scanner2) <- expect(scanner,
+                                      byType(IfToken) + byType(LParanToken));
+         (condition, scanner3) <- parse_boolean_expression(scanner2);
+         (_, scanner4) <- expect(scanner3, RParanToken);
+         (true_path, scanner5) <- parse_expressions_block(scanner4);
+         (else_token, scanner6) <- expect(scanner5, oneOrZero(ElseToken)))
+      yield
+        (if (else_token.isEmpty) {
+           (Node(tokens(0), condition :: true_path :: Nil), scanner6)
+         } else {
+           parse_expressions_block(scanner6)
+             .map(r => {
+               val (false_path: Node, scanner7: Scanner) = r
+               (Node(tokens(0), condition :: true_path :: false_path :: Nil),
+                scanner7)
+             })
+             .get
+         })
   }
 
   def parse_boolean_expression(scanner: Scanner): Try[(Node, Scanner)] = {
