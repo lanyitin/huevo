@@ -26,7 +26,7 @@ class ParserSpec extends FlatSpec with Matchers {
       result.failed.get.printStackTrace
       fail(result.failed.get)
     } else {
-     println(result.get._1.gen_graphviz)
+     println(result.get._1.visualize)
     }
   }
 
@@ -41,7 +41,7 @@ class ParserSpec extends FlatSpec with Matchers {
       result.failed.get.printStackTrace
       fail(result.failed.get)
     } else {
-     println(result.get._1.gen_graphviz)
+     println(result.get._1.visualize)
     }
   }
 
@@ -55,7 +55,7 @@ class ParserSpec extends FlatSpec with Matchers {
       result.failed.get.printStackTrace
       fail(result.failed.get)
     } else {
-     println(result.get._1.gen_graphviz)
+     println(result.get._1.visualize)
     }
   }
 
@@ -73,7 +73,7 @@ class ParserSpec extends FlatSpec with Matchers {
       result.failed.get.printStackTrace
       fail(result.failed.get)
     } else {
-     println(result.get._1.gen_graphviz)
+     println(result.get._1.visualize)
     }
   }
 
@@ -81,6 +81,7 @@ class ParserSpec extends FlatSpec with Matchers {
     val content = """
     |if (a > b) {
     |  1 + 1
+    |  2 + 2
     |} else if (a == b) {
     |  2 + 1
     |}
@@ -91,7 +92,7 @@ class ParserSpec extends FlatSpec with Matchers {
       result.failed.get.printStackTrace
       fail(result.failed.get)
     } else {
-     println(result.get._1.gen_graphviz)
+     println(result.get._1.visualize)
     }
   }
 

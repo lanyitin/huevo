@@ -6,7 +6,7 @@ object Main {
     val scanner = Scanner(content)
     val result = Parser.parse(scanner)
     if (result.isSuccess) {
-      println(result.get._1.gen_graphviz)
+      println(result.get._1.visualize)
     }
   }
 }

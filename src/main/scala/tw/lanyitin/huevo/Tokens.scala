@@ -144,6 +144,7 @@ object MatcherGenerator {
     override def toString: String = tokenType.toString
   }
 
+  import scala.language.implicitConversions
   implicit def tokenTypeToMatcher(token: TokenType): TokenMatcher = {
     byType(token)
   }
