@@ -35,19 +35,42 @@ class VMSpec extends FlatSpec with Matchers {
       |push true
       |push false
       |boolean_or
-      |push 6
-      |push 10
+      |push FALSE_PATH
       |jnz
-      |push 1
-      |push 1
-      |addi
-      |goto 13
-      |push 2
-      |push 2
-      |multiplyi
-      |nop 
+      | push 1
+      | push 1
+      | addi
+      | jmp END_OF_OF
+      |FALSE_PATH:
+      | push 2
+      | push 2
+      | multiplyi
+      |END_OF_OF:
+      | nop 
     """.stripMargin('|').split("\\n").toList.map(_.trim).filter(_.length > 0)
     val vm = VM(instructions).run    
     assert(vm.stack.top.toString=="2")
+  }
+
+  it should "able to handle if expression (case 2)" in {
+    val instructions: List[String] = """
+      |push true
+      |push false
+      |boolean_and
+      |push FALSE_PATH
+      |jnz
+      | push 1
+      | push 1
+      | addi
+      | jmp END_OF_OF
+      |FALSE_PATH:
+      | push 2
+      | push 2
+      | multiplyi
+      |END_OF_OF:
+      | nop 
+    """.stripMargin('|').split("\\n").toList.map(_.trim).filter(_.length > 0)
+    val vm = VM(instructions).run    
+    assert(vm.stack.top.toString=="4")
   }
 }

@@ -1,8 +1,25 @@
 package tw.lanyitin.huevo.machine
 import java.nio.ByteBuffer
 import scala.annotation.tailrec
+import scala .collection.immutable.Map
 import java.io.PrintStream
-case class VM(instructions: List[String], stack: Stack[HObject]=ListStack(Nil), ip_stack: Stack[Int]=ListStack(0 :: Nil),  heap: Heap=Heap(), stdout:PrintStream=System.out, stderr:PrintStream=System.err) {
+case class VM(_instructions: List[String], stack: Stack[HObject]=ListStack(Nil), ip_stack: Stack[Int]=ListStack(0 :: Nil),  heap: Heap=Heap(), stdout:PrintStream=System.out, stderr:PrintStream=System.err) {
+
+  def label_analysis: (List[String], Map[String, Int]) = {
+    @tailrec
+    def loop(ip: Int, new_ip: Int, new_instructions: List[String], labels: Map[String, Int]): (List[String], Map[String, Int]) = {
+      if (ip >= _instructions.size) {
+        (new_instructions.reverse, labels)
+      } else if (_instructions(ip).endsWith(":")) {
+        loop(ip + 1, new_ip, new_instructions, labels + ((_instructions(ip).replace(":", ""), new_ip)))
+      } else {
+        loop(ip + 1, new_ip + 1, _instructions(ip) :: new_instructions, labels)
+      }
+    }
+    loop(0, 0, Nil, Map.empty)
+  }
+
+  val (instructions: List[String], labels: Map[String, Int]) = label_analysis
 
   def run = {
     @tailrec
@@ -17,14 +34,20 @@ case class VM(instructions: List[String], stack: Stack[HObject]=ListStack(Nil), 
         } else if (instruction(0) == "print") {
           vm.print
         } else if (instruction(0) == "jmp") {
-          val addr = instruction(1).toInt
-          vm.jmp(addr)
+          if (instruction(1).matches("\\d+")) {
+            vm.jmp(instruction(1).toInt)
+          } else {
+            vm.jmp(labels(instruction(1)))
+          }
+          
         } else if (instruction(0) == "push") {
           val operand = instruction(1).toLowerCase
           if (operand == "true" || operand == "false") {
             vm.push(HObject(operand.toBoolean))
-          } else {
+          } else if (operand.matches("\\d+")) {
             vm.push(HObject(operand.toInt))
+          } else {
+            vm.push(HObject(labels(instruction(1))))
           }
         } else if (instruction(0) == "pop") {
           vm.pop._2
@@ -53,7 +76,7 @@ case class VM(instructions: List[String], stack: Stack[HObject]=ListStack(Nil), 
         } else if (instruction(0) == "rotate") {
           vm.rotate
         } else if (instruction(0) == "jnz") {
-          vm.conditional_jump
+          vm.jnz
         } else {
           throw new Exception(s"unexpected instruction: ${instruction}")
         }
@@ -167,14 +190,13 @@ case class VM(instructions: List[String], stack: Stack[HObject]=ListStack(Nil), 
     this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))    
   }
 
-  def conditional_jump = {
-    val (false_path:HObject, s1: Stack[HObject]) = stack.pop
-    val (true_path:HObject, s2: Stack[HObject]) = s1.pop
-    val (condition:HObject, s3: Stack[HObject]) = s2.pop
+  def jnz = {
+    val (label:HObject, s1: Stack[HObject]) = stack.pop
+    val (condition:HObject, s2: Stack[HObject]) = s1.pop
     if (condition.getBoolean) {
-      this.copy(stack=s3, ip_stack=ListStack(true_path.getInt :: ip_stack.list.tail))
+      this.copy(stack=s2, ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
     } else {
-      this.copy(stack=s3, ip_stack=ListStack(false_path.getInt :: ip_stack.list.tail))
+      this.copy(stack=s2, ip_stack=ListStack(label.getInt :: ip_stack.list.tail))
     }
   }
 }
