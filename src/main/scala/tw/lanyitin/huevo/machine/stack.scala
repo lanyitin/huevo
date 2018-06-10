@@ -5,6 +5,7 @@ trait Stack[T] {
   def top: T
   def push(value: T): Stack[T]
   def pop: (T, Stack[T])
+  def list: List[T]
 }
 
 case class ListStack[T](list: List[T]) extends Stack[T] {
