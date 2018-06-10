@@ -1,4 +1,4 @@
-package tw.lanyitin.huevo
+package tw.lanyitin.huevo.parse
 
 import scala.util.{Try, Success, Failure}
 

@@ -1,7 +1,6 @@
-package tw.lanyitin.huevo
+package tw.lanyitin.huevo.parse
 
 import TokenType._
-import ast._
 import scala.annotation.tailrec
 import scala.util.{Try, Success, Failure}
 import scala.language.implicitConversions
@@ -9,20 +8,23 @@ import scala.language.implicitConversions
 object Parser {
   import MatcherGenerator._
 
-  @tailrec
-  def parse(scanner: Scanner, acc: List[Expression] = Nil): Try[(ExprsBlock, Scanner)] = {
-    val next_token = scanner.take(1)(0)
-    if (next_token.tokenType == EOFToken) {
-      Success((ExprsBlock(acc.reverse), scanner))
-    } else {
-      val result = parse_expression(scanner)
-      if (result.isFailure) {
-        Failure(result.failed.get)
+  def parse(scanner: Scanner): Try[(ExprsBlock, Scanner)] = {
+    @tailrec
+    def loop(scanner: Scanner, acc: List[Expression] = Nil): Try[(ExprsBlock, Scanner)] = {
+      val next_token = scanner.take(1)(0)
+      if (next_token.tokenType == EOFToken) {
+        Success((ExprsBlock(acc.reverse), scanner))
       } else {
-        val (expr: Expression, scanner2: Scanner) = result.get
-        parse(scanner2, expr :: acc)
+        val result = parse_expression(scanner)
+        if (result.isFailure) {
+          Failure(result.failed.get)
+        } else {
+          val (expr: Expression, scanner2: Scanner) = result.get
+          loop(scanner2, expr :: acc)
+        }
       }
     }
+    loop(scanner)
   }
 
   def parse_expressions_block(scanner: Scanner): Try[(Expression, Scanner)] = {
@@ -203,7 +205,7 @@ object Parser {
 
   def parse_type(scanner: Scanner): Try[(Type, Scanner)] = {
     byType(IdentifierToken)(scanner).flatMap(r => {
-      Success((Type(r._1(0)), r._2))
+      Success((NamedType(r._1(0)), r._2))
     })
   }
 

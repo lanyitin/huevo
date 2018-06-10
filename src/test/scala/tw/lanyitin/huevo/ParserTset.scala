@@ -1,4 +1,4 @@
-package tw.lanyitin.huevo
+package tw.lanyitin.huevo.parse
 
 import org.scalatest._
 import java.io.File
@@ -26,7 +26,7 @@ class ParserSpec extends FlatSpec with Matchers {
       result.failed.get.printStackTrace
       fail(result.failed.get)
     } else {
-     println(result.get._1.visualize)
+    //  println(result.get._1.visualize)
     }
   }
 
@@ -41,7 +41,7 @@ class ParserSpec extends FlatSpec with Matchers {
       result.failed.get.printStackTrace
       fail(result.failed.get)
     } else {
-     println(result.get._1.visualize)
+    //  println(result.get._1.visualize)
     }
   }
 
@@ -55,7 +55,7 @@ class ParserSpec extends FlatSpec with Matchers {
       result.failed.get.printStackTrace
       fail(result.failed.get)
     } else {
-     println(result.get._1.visualize)
+    //  println(result.get._1.visualize)
     }
   }
 
@@ -73,7 +73,7 @@ class ParserSpec extends FlatSpec with Matchers {
       result.failed.get.printStackTrace
       fail(result.failed.get)
     } else {
-     println(result.get._1.visualize)
+    //  println(result.get._1.visualize)
     }
   }
 
@@ -92,9 +92,7 @@ class ParserSpec extends FlatSpec with Matchers {
       result.failed.get.printStackTrace
       fail(result.failed.get)
     } else {
-     println(result.get._1.visualize)
+    //  println(result.get._1.visualize)
     }
   }
-
-
 }

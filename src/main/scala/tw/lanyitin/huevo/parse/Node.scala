@@ -1,21 +1,17 @@
-package tw.lanyitin.huevo.ast
-import tw.lanyitin.huevo.Token
+package tw.lanyitin.huevo.parse
 import java.util.Locale
 
-/*
- * Expression
- *   ExprsBlock
- *   OperationCallExpression
- *   FunctionCallExpression
- *   LiteralExpression
- *      BooleanLiteralExpression
- *      NumberLiteralExpression
- *   VariableExpression
- *   IfExpression
- *   FunctionDefinitionExpression
- */
-
-case class Type(token: Token)
+trait Type {
+  def toString: String
+}
+case class NamedType(token: Token) extends Type {
+  override def toString = token.txt
+}
+case class LambdaType(argType: List[Type], retType: Type) extends Type {
+  override def toString = {
+    "(%s): %s".format(argType.map(_.toString).mkString(", "), retType.toString)
+  }
+}
 case class Parameter(token: Token, parameterType: Type)
 case class FunctionDeclaration(identifier: Token, parameters: List[Parameter], ret_type: Type)
 
@@ -38,7 +34,7 @@ case class FunctionDefinitionExpression(declaration: FunctionDeclaration, body: 
   }
 
   def visualize = {
-    val arg_types = declaration.parameters.map(_.parameterType).map(_.token.txt).mkString(",")
+    val arg_types = declaration.parameters.map(_.parameterType).map(_.toString).mkString(",")
     val ret_type = declaration.ret_type
     val identifier = declaration.identifier
 
@@ -48,7 +44,7 @@ case class FunctionDefinitionExpression(declaration: FunctionDeclaration, body: 
       this.id,
       identifier.txt,
       arg_types,
-      ret_type.token.txt
+      ret_type.toString
     ) :: Nil).mkString("\n")
   }
 }
