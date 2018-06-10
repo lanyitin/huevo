@@ -25,60 +25,55 @@ case class VM(_instructions: List[String], stack: Stack[HObject]=ListStack(Nil),
     @tailrec
     def loop(vm: VM):VM = {
       if (vm.ip_stack.top >= vm.instructions.size) {
-        println(vm.stack.top)
         vm
       } else {
         val instruction: List[String] = vm.instructions(vm.ip_stack.top).split(" ").toList
-        val v2: VM = if (instruction(0) == "nop") {
-          vm.nop
-        } else if (instruction(0) == "print") {
-          vm.print
-        } else if (instruction(0) == "jmp") {
-          if (instruction(1).matches("\\d+")) {
-            vm.jmp(instruction(1).toInt)
-          } else {
-            vm.jmp(labels(instruction(1)))
+        val v2: VM = instruction(0) match {
+          case "nop" => vm.nop
+          case "print" => vm.print
+          case "push" => {
+            val operand = instruction(1).toLowerCase
+            if (operand == "true" || operand == "false") {
+              vm.push(HObject(operand.toBoolean))
+            } else if (operand.matches("\\d+")) {
+              vm.push(HObject(operand.toInt))
+            } else {
+              vm.push(HObject(labels(instruction(1))))
+            }
           }
-          
-        } else if (instruction(0) == "push") {
-          val operand = instruction(1).toLowerCase
-          if (operand == "true" || operand == "false") {
-            vm.push(HObject(operand.toBoolean))
-          } else if (operand.matches("\\d+")) {
-            vm.push(HObject(operand.toInt))
-          } else {
-            vm.push(HObject(labels(instruction(1))))
+          case "pop" => vm.pop._2
+          case "jmp" => {
+            if (instruction(1).matches("\\d+")) {
+              vm.jmp(instruction(1).toInt)
+            } else {
+              vm.jmp(labels(instruction(1)))
+            }
           }
-        } else if (instruction(0) == "pop") {
-          vm.pop._2
-        } else if (instruction(0) == "addi") {
-          vm.addi
-        } else if (instruction(0) == "addf") {
-          vm.addf
-        } else if (instruction(0) == "subi") {
-          vm.subi
-        } else if (instruction(0) == "subf") {
-          vm.subf
-        } else if (instruction(0) == "multiplyi") {
-          vm.multiplyi
-        } else if (instruction(0) == "multiplyf") {
-          vm.multiplyf
-        } else if (instruction(0) == "dividei") {
-          vm.dividei
-        } else if (instruction(0) == "dividef") {
-          vm.dividef
-        } else if (instruction(0) == "boolean_and") {
-          vm.boolean_and
-        } else if (instruction(0) == "boolean_or") {
-          vm.boolean_or
-        } else if (instruction(0) == "swap") {
-          vm.swap
-        } else if (instruction(0) == "rotate") {
-          vm.rotate
-        } else if (instruction(0) == "jnz") {
-          vm.jnz
-        } else {
-          throw new Exception(s"unexpected instruction: ${instruction}")
+          case "jnz" => vm.jnz
+          case "swap" => vm.swap
+          case "rotate" => vm.rotate
+          case "duplicate" => vm.duplicate
+          case "boolean_and" => vm.boolean_and
+          case "boolean_or" => vm.boolean_or
+          case "boolean_not" => vm.boolean_not
+          case "boolean_xor" => vm.boolean_xor
+          case "addi" => vm.addi
+          case "addf" => vm.addf
+          case "subi" => vm.subi
+          case "subf" => vm.subf
+          case "multiplyi" => vm.multiplyi
+          case "multiplyf" => vm.multiplyf
+          case "dividei" => vm.dividei
+          case "dividef" => vm.dividef
+          case "gti" => vm.gti
+          case "gtf" => vm.gtf
+          case "gtei" => vm.gtei
+          case "gtef" => vm.gtef
+          case "lti" => vm.lti
+          case "ltf" => vm.ltf
+          case "ltei" => vm.ltei
+          case "ltef" => vm.ltef
+          case _ => throw new Exception(s"unexpected instruction: ${instruction}")
         }
         loop(v2)
       }
@@ -97,6 +92,7 @@ case class VM(_instructions: List[String], stack: Stack[HObject]=ListStack(Nil),
     this.copy(ip_stack=ListStack(addr :: ip_stack.list.tail))
   }
 
+  // TODO
   def load(hashCode: Integer) = {
     this.copy(stack=stack.push(heap.find(hashCode)), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
   }
@@ -176,6 +172,12 @@ case class VM(_instructions: List[String], stack: Stack[HObject]=ListStack(Nil),
     this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
   }
 
+  def boolean_not = {
+    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val result = HObject(!a.getBoolean)
+    this.copy(stack=s1.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
+  }
+
   def boolean_and = {
     val (a:HObject, s1: Stack[HObject]) = stack.pop
     val (b:HObject, s2: Stack[HObject]) = s1.pop
@@ -190,6 +192,14 @@ case class VM(_instructions: List[String], stack: Stack[HObject]=ListStack(Nil),
     this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))    
   }
 
+  def boolean_xor = {
+    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (b:HObject, s2: Stack[HObject]) = s1.pop
+    val (x:Boolean,y: Boolean) = (a.getBoolean, b.getBoolean)
+    val result = HObject((x || y) && !(x && y))
+    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))    
+  }
+
   def jnz = {
     val (label:HObject, s1: Stack[HObject]) = stack.pop
     val (condition:HObject, s2: Stack[HObject]) = s1.pop
@@ -198,5 +208,54 @@ case class VM(_instructions: List[String], stack: Stack[HObject]=ListStack(Nil),
     } else {
       this.copy(stack=s2, ip_stack=ListStack(label.getInt :: ip_stack.list.tail))
     }
+  }
+
+  def gti = {
+    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (b:HObject, s2: Stack[HObject]) = s1.pop
+    val result = HObject(a.getInt > b.getInt)
+    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))     
+  }
+  def gtf = {
+    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (b:HObject, s2: Stack[HObject]) = s1.pop
+    val result = HObject(a.getFloat > b.getFloat)
+    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))     
+  }
+  def gtei = {
+    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (b:HObject, s2: Stack[HObject]) = s1.pop
+    val result = HObject(a.getInt >= b.getInt)
+    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))     
+  }
+  def gtef = {
+    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (b:HObject, s2: Stack[HObject]) = s1.pop
+    val result = HObject(a.getFloat >= b.getFloat)
+    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))     
+  }
+  def lti = {
+    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (b:HObject, s2: Stack[HObject]) = s1.pop
+    val result = HObject(a.getInt < b.getInt)
+    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))     
+  }
+  def ltf = {
+    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (b:HObject, s2: Stack[HObject]) = s1.pop
+    val result = HObject(a.getFloat < b.getFloat)
+    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))     
+  }
+  def ltei = {
+    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (b:HObject, s2: Stack[HObject]) = s1.pop
+    val result = HObject(a.getInt <= b.getInt)
+    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))     
+  }
+  def ltef = {
+    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (b:HObject, s2: Stack[HObject]) = s1.pop
+    val result = HObject(a.getFloat <= b.getFloat)
+    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))     
   }
 }

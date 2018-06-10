@@ -10,19 +10,14 @@ class VMSpec extends FlatSpec with Matchers {
       |push 1
       |push 1
       |addi
-      |print
       |push 10
       |multiplyi
-      |print
       |push 50
       |dividei
-      |print
       |push 1
       |addi
-      |print
       |push 10
       |dividef
-      |print
       |push false
       |boolean_and
     """.stripMargin('|').split("\\n").toList.map(_.trim).filter(_.length > 0)
@@ -46,7 +41,7 @@ class VMSpec extends FlatSpec with Matchers {
       | push 2
       | multiplyi
       |END_OF_OF:
-      | nop 
+      | print 
     """.stripMargin('|').split("\\n").toList.map(_.trim).filter(_.length > 0)
     val vm = VM(instructions).run    
     assert(vm.stack.top.toString=="2")
@@ -64,13 +59,13 @@ class VMSpec extends FlatSpec with Matchers {
       | addi
       | jmp END_OF_OF
       |FALSE_PATH:
-      | push 2
-      | push 2
-      | multiplyi
+      | push true
+      | push true
+      | boolean_xor
       |END_OF_OF:
-      | nop 
+      | print 
     """.stripMargin('|').split("\\n").toList.map(_.trim).filter(_.length > 0)
     val vm = VM(instructions).run    
-    assert(vm.stack.top.toString=="4")
+    assert(vm.stack.top.toString=="false")
   }
 }
