@@ -10,17 +10,23 @@ class VMSpec extends FlatSpec with Matchers {
       |push 1
       |push 1
       |addi
+      |print
       |push 10
       |multiplyi
+      |print
       |push 50
       |dividei
+      |print
       |push 1
       |addi
+      |print
       |push 10
       |dividef
+      |print
+      |push false
+      |boolean_and
     """.stripMargin('|').split("\\n").toList.map(_.trim).filter(_.length > 0)
-    println(instructions)
     val vm = VM(instructions).run
-    assert(vm.stack.top.toString=="0.1")
+    assert(vm.stack.top.toString=="false")
   }
 }

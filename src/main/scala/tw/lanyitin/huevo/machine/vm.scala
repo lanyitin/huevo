@@ -1,7 +1,8 @@
 package tw.lanyitin.huevo.machine
 import java.nio.ByteBuffer
 import scala.annotation.tailrec
-case class VM(instructions: List[String], stack: Stack[HObject]=ListStack(Nil), ip_stack: Stack[Int]=ListStack(0 :: Nil),  heap: Heap=Heap()) {
+import java.io.PrintStream
+case class VM(instructions: List[String], stack: Stack[HObject]=ListStack(Nil), ip_stack: Stack[Int]=ListStack(0 :: Nil),  heap: Heap=Heap(), stdout:PrintStream=System.out, stderr:PrintStream=System.err) {
 
   def run = {
     @tailrec
@@ -13,6 +14,8 @@ case class VM(instructions: List[String], stack: Stack[HObject]=ListStack(Nil), 
         val instruction: List[String] = vm.instructions(vm.ip_stack.top).split(" ").toList
         val v2: VM = if (instruction(0) == "nop") {
           vm.nop
+        } else if (instruction(0) == "print") {
+          vm.print
         } else if (instruction(0) == "push") {
           val operand = instruction(1).toLowerCase
           if (operand == "true" || operand == "false") {
@@ -38,6 +41,10 @@ case class VM(instructions: List[String], stack: Stack[HObject]=ListStack(Nil), 
           vm.dividei
         } else if (instruction(0) == "dividef") {
           vm.dividef
+        } else if (instruction(0) == "boolean_and") {
+          vm.boolean_and
+        } else if (instruction(0) == "boolean_or") {
+          vm.boolean_or
         } else {
           throw new Exception(s"unexpected instruction: ${instruction}")
         }
@@ -46,7 +53,10 @@ case class VM(instructions: List[String], stack: Stack[HObject]=ListStack(Nil), 
     }
     loop(this)
   }
-
+  def print = {
+    stdout.println(stack.top.toString)
+    this.copy(ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
+  }
   def nop = {
     this.copy(ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
   }
@@ -72,13 +82,6 @@ case class VM(instructions: List[String], stack: Stack[HObject]=ListStack(Nil), 
     val (a: HObject, s1: Stack[HObject]) = stack.pop
     val (b: HObject, s2: Stack[HObject]) = s1.pop
     this.copy(stack=stack.push(a).push(b), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
-  }
-
-  def boolean_and = {
-    val (a: HObject, s1: Stack[HObject]) = stack.pop
-    val (b: HObject, s2: Stack[HObject]) = s1.pop
-    val c = a.getBoolean && b.getBoolean
-    this.copy(stack=stack.push(HObject(c)), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
   }
 
   def rotate = {
@@ -135,6 +138,20 @@ case class VM(instructions: List[String], stack: Stack[HObject]=ListStack(Nil), 
     val (b:HObject, s2: Stack[HObject]) = s1.pop
     val result = HObject(b.getFloat / a.getFloat)
     this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
+  }
+
+  def boolean_and = {
+    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (b:HObject, s2: Stack[HObject]) = s1.pop
+    val result = HObject(a.getBoolean && b.getBoolean)
+    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))    
+  }
+
+  def boolean_or = {
+    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (b:HObject, s2: Stack[HObject]) = s1.pop
+    val result = HObject(a.getBoolean || b.getBoolean)
+    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))    
   }
 
   def conditional_jump = {
