@@ -16,6 +16,9 @@ case class VM(instructions: List[String], stack: Stack[HObject]=ListStack(Nil), 
           vm.nop
         } else if (instruction(0) == "print") {
           vm.print
+        } else if (instruction(0) == "jmp") {
+          val addr = instruction(1).toInt
+          vm.jmp(addr)
         } else if (instruction(0) == "push") {
           val operand = instruction(1).toLowerCase
           if (operand == "true" || operand == "false") {
@@ -45,6 +48,12 @@ case class VM(instructions: List[String], stack: Stack[HObject]=ListStack(Nil), 
           vm.boolean_and
         } else if (instruction(0) == "boolean_or") {
           vm.boolean_or
+        } else if (instruction(0) == "swap") {
+          vm.swap
+        } else if (instruction(0) == "rotate") {
+          vm.rotate
+        } else if (instruction(0) == "jnz") {
+          vm.conditional_jump
         } else {
           throw new Exception(s"unexpected instruction: ${instruction}")
         }
@@ -59,6 +68,10 @@ case class VM(instructions: List[String], stack: Stack[HObject]=ListStack(Nil), 
   }
   def nop = {
     this.copy(ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
+  }
+
+  def jmp(addr: Int) = {
+    this.copy(ip_stack=ListStack(addr :: ip_stack.list.tail))
   }
 
   def load(hashCode: Integer) = {
