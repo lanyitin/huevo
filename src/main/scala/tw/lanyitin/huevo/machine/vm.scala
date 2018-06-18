@@ -57,6 +57,7 @@ case class VM(_instructions: List[String], stack: Stack[HObject]=ListStack(Nil),
           case "boolean_or" => vm.boolean_or
           case "boolean_not" => vm.boolean_not
           case "boolean_xor" => vm.boolean_xor
+          case "boolean_equal" => vm.boolean_equal
           case "addi" => vm.addi
           case "addf" => vm.addf
           case "subi" => vm.subi
@@ -73,6 +74,10 @@ case class VM(_instructions: List[String], stack: Stack[HObject]=ListStack(Nil),
           case "ltf" => vm.ltf
           case "ltei" => vm.ltei
           case "ltef" => vm.ltef
+          case "eqi" => vm.eqi
+          case "eqf" => vm.eqf
+          case "neqi" => vm.neqi
+          case "neqf" => vm.neqf
           case _ => throw new Exception(s"unexpected instruction: ${instruction}")
         }
         loop(v2)
@@ -200,6 +205,13 @@ case class VM(_instructions: List[String], stack: Stack[HObject]=ListStack(Nil),
     this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))    
   }
 
+  def boolean_equal = {
+    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (b:HObject, s2: Stack[HObject]) = s1.pop
+    val result = HObject(a.getBoolean == b.getBoolean)
+    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
+  }
+
   def jnz = {
     val (label:HObject, s1: Stack[HObject]) = stack.pop
     val (condition:HObject, s2: Stack[HObject]) = s1.pop
@@ -256,6 +268,34 @@ case class VM(_instructions: List[String], stack: Stack[HObject]=ListStack(Nil),
     val (a:HObject, s1: Stack[HObject]) = stack.pop
     val (b:HObject, s2: Stack[HObject]) = s1.pop
     val result = HObject(a.getFloat <= b.getFloat)
+    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))     
+  }
+
+  def eqi = {
+    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (b:HObject, s2: Stack[HObject]) = s1.pop
+    val result = HObject(a.getInt == b.getInt)
+    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))     
+  }
+
+  def eqf = {
+    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (b:HObject, s2: Stack[HObject]) = s1.pop
+    val result = HObject(a.getFloat == b.getFloat)
+    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))     
+  }
+
+  def neqi = {
+    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (b:HObject, s2: Stack[HObject]) = s1.pop
+    val result = HObject(a.getInt != b.getInt)
+    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))     
+  }
+
+  def neqf = {
+    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (b:HObject, s2: Stack[HObject]) = s1.pop
+    val result = HObject(a.getFloat != b.getFloat)
     this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))     
   }
 }

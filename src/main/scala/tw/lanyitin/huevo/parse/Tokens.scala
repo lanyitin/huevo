@@ -37,6 +37,7 @@ object TokenType extends Enumeration {
   val CommentBodyToken = Value("<comment>")
   val QuoteToken = Value("\"")
   val BooleanConstantToken = Value("<boolean>")
+  val LetToken = Value("let")
 // TODO: is it possible to eliminate NotExistToken?
   val NotExistToken = Value("")
 }

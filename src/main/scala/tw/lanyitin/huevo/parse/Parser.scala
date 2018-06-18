@@ -8,9 +8,20 @@ import scala.language.implicitConversions
 object Parser {
   import MatcherGenerator._
 
-  def parse(scanner: Scanner): Try[(ExprsBlock, Scanner)] = {
+  var scope: Scope = TopScope()
+
+  def openScope = {
+    val newScope = SubScope(this.scope)
+    this.scope = newScope
+  }
+
+  def closeScope = {
+    this.scope = scope.up
+  }
+
+  def parse(scanner: Scanner): Try[(Expression, Scanner)] = {
     @tailrec
-    def loop(scanner: Scanner, acc: List[Expression] = Nil): Try[(ExprsBlock, Scanner)] = {
+    def loop(scanner: Scanner, acc: List[Expression] = Nil): Try[(Expression, Scanner)] = {
       val next_token = scanner.take(1)(0)
       if (next_token.tokenType == EOFToken) {
         Success((ExprsBlock(acc.reverse), scanner))
@@ -51,7 +62,11 @@ object Parser {
       loop(r.get._2).flatMap(r => {
         val (exprs: List[Expression], scanner2: Scanner) = r
         expect(scanner2, RCurlyBracket).flatMap(er => {
-          Success((ExprsBlock(r._1), er._2))
+          if (r._1.size == 1) {
+            Success((r._1(0), er._2))
+          } else {
+            Success((ExprsBlock(r._1), er._2))
+          }
         })
       })
     }
@@ -60,7 +75,9 @@ object Parser {
   def parse_expression(scanner: Scanner): Try[(Expression, Scanner)] = {
     val next_tokens = scanner.take(2)
     val next_token = next_tokens(0)
-    if (next_token.tokenType == DefToken) {
+    if (next_token.tokenType == LetToken) {
+      parse_variable_definition(scanner)
+    } else if (next_token.tokenType == DefToken) {
       parse_function_defintion(scanner)
     } else if (next_token.tokenType == NumberToken) {
       parse_arith_expression(scanner)
@@ -77,7 +94,9 @@ object Parser {
           parse_function_call(scanner)
         case CommaToken | RParanToken | RCurlyBracket | EOFToken =>
           val (t, s) = scanner.nextToken
-          Success((IdentifierExpression(next_token), s))
+          this.scope.find(next_token).flatMap(variable => {
+            Success((IdentifierExpression(next_token, variable.typ), s))
+          })
       }
     } else if (next_token.tokenType == IfToken) {
       parse_if_expression(scanner)
@@ -90,6 +109,19 @@ object Parser {
       Failure(new Exception(
         s"unexpected token ${next_token.tokenType.toString}\n${next_token.line + 1} ${current_line}"))
     }
+  }
+
+  def parse_variable_definition(scanner: Scanner): Try[(Expression, Scanner)] = {
+    for (
+      (tokens: List[Token], scanner2: Scanner) <- expect(scanner, byType(LetToken) + byType(IdentifierToken) + byType(ColumnToken));
+      (typ: Type, scanner3: Scanner) <- parse_type(scanner2);
+      (_, scanner4: Scanner) <- expect(scanner3,byType(AssignToken));
+      (value: Expression, scanner5: Scanner) <- parse_expression(scanner4)
+    ) yield ({
+      val variable = Variable(tokens(1), typ)
+      this.scope = this.scope.put(variable.token, variable)
+      (VariableDefinitionExpression(variable, value), scanner5)
+    })
   }
 
   def parse_function_call_args(scanner: Scanner): Try[(List[Expression], Scanner)] = {
@@ -123,12 +155,11 @@ object Parser {
   }
 
   def parse_function_call(scanner: Scanner): Try[(Expression, Scanner)] = {
-    for ((function_name, scanner2) <- expect(
-           scanner,
-           byType(IdentifierToken) + byType(LParanToken));
+    for ((function_name, scanner2) <- expect(scanner, byType(IdentifierToken) + byType(LParanToken));
          (args, scanner3) <- parse_function_call_args(scanner2);
-         (_, scanner4) <- expect(scanner3, RParanToken))
-      yield ((new FunctionCallExpression(function_name(0), args:_*), scanner4))
+         (_, scanner4) <- expect(scanner3, RParanToken);
+         declaration <- this.scope.find(function_name(0))
+    ) yield ((new FunctionCallExpression(declaration.asInstanceOf[FunctionDeclaration], args:_*), scanner4))
   }
 
   def parse_if_expression(scanner: Scanner): Try[(Expression, Scanner)] = {
@@ -178,7 +209,9 @@ object Parser {
         .flatMap(r1 => {
           val (tokens: List[Token], scanner2: Scanner) = r1
           tokens(0).tokenType match {
-            case IdentifierToken => Success((IdentifierExpression(tokens(0)), scanner2))
+            case IdentifierToken => this.scope.find(tokens(0)).flatMap(variable => {
+              Success((IdentifierExpression(tokens(0), variable.typ), scanner2))
+            })
             case BooleanConstantToken => Success((BooleanLiteralExpression(tokens(0), tokens(0).txt.toBoolean), scanner2))
           }
         })
@@ -186,17 +219,25 @@ object Parser {
   }
 
   def parse_function_defintion(scanner: Scanner): Try[(FunctionDefinitionExpression, Scanner)] = {
+    this.openScope
     for ((fun_decl, scanner2) <- parse_function_declaration(scanner);
-         (tokens, scanner3) <- expect(scanner2, AssignToken);
+         (tokens, scanner3) <- {
+           val newUp = this.scope.up.put(fun_decl.identifier, fun_decl)
+           this.scope = SubScope(newUp, this.scope.map)
+           expect(scanner2, AssignToken)
+         };
          (expressions, scanner4) <- parse_expressions_block(scanner3))
-      yield (((FunctionDefinitionExpression(fun_decl, expressions), scanner4)))
+      yield ({
+        this.closeScope
+        ((FunctionDefinitionExpression(fun_decl, expressions), scanner4))
+      })
   }
 
   def parse_function_declaration(scanner: Scanner): Try[(FunctionDeclaration, Scanner)] = {
     for ((tokens, scanner2) <- expect(
            scanner,
            byType(DefToken) + byType(IdentifierToken) + byType(LParanToken));
-         (arg_list, scanner3) <- parse_argument_list(scanner2);
+         (arg_list, scanner3) <- parse_parameter_list(scanner2);
          (_, scanner4) <- expect(scanner3,
                                  byType(RParanToken) + byType(ColumnToken));
          (fun_type, scanner5) <- parse_type(scanner4))
@@ -205,11 +246,16 @@ object Parser {
 
   def parse_type(scanner: Scanner): Try[(Type, Scanner)] = {
     byType(IdentifierToken)(scanner).flatMap(r => {
-      Success((NamedType(r._1(0)), r._2))
+      r._1(0).txt match {
+        case "Float" => Success((HFloat, r._2))
+        case "Integer" => Success((HInteger, r._2))
+        case "Boolean" => Success((HBoolean, r._2))
+        case _ => Failure(new Exception(s"unresolved type ${r._1(0)}"))
+      }
     })
   }
 
-  def parse_argument_list(scanner: Scanner): Try[(List[Parameter], Scanner)] = {
+  def parse_parameter_list(scanner: Scanner): Try[(List[Parameter], Scanner)] = {
     for ((tokens, scanner2) <- expect(
            scanner,
            byType(IdentifierToken) + byType(ColumnToken));
@@ -217,7 +263,11 @@ object Parser {
       yield
         ({
           val (rest_args, scanner4: Scanner) = parse_rest_arg_list(scanner3)
-          (Parameter(tokens(0), type_node) :: rest_args, scanner4)
+          val parameters = Parameter(tokens(0), type_node) :: rest_args
+          parameters.foreach(p => {
+            this.scope = this.scope.put(p.token, p)
+          })
+          (parameters, scanner4)
         })
   }
 
@@ -275,10 +325,20 @@ object Parser {
   def parse_arith_factor(scanner: Scanner): Try[(Expression, Scanner)] = {
     val (token, scanner2) = scanner.nextToken
     token.tokenType match {
-      case NumberToken =>
-        Success((NumberLiteralExpression(token, token.txt.toInt), scanner2))
+      case NumberToken => {
+        if (token.txt.contains(".")) {
+          Success((FloatLiteralExpression(token, token.txt.toFloat), scanner2))
+        } else {
+          Success((IntegerLiteralExpression(token, token.txt.toInt), scanner2))
+        }
+      }
+      case BooleanConstantToken => {
+        Success((BooleanLiteralExpression(token, token.txt.toBoolean), scanner2))
+      }
       case IdentifierToken =>
-        Success((IdentifierExpression(token), scanner2))
+        this.scope.find(token).flatMap(variable => {
+          Success((IdentifierExpression(token, variable.typ), scanner2))
+        })
       case LParanToken => {
         for ((arith_exp, scanner3) <- parse_arith_expression(scanner2);
              (_, scanner4) <- expect(scanner3, RParanToken))

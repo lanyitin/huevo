@@ -72,6 +72,7 @@ case class NormalModeScanner(override val content: String, override val state: S
   import typeDef._
 
   def tokenizers: List[Tuple2[Pattern, TokenFn]] =
+    (Pattern.compile("^(let)"), (txt: String, line: Integer, col: Integer) => new Token(LetToken, txt, line, col)) ::
     (Pattern.compile("^(def)"), (txt: String, line: Integer, col: Integer) => new Token(DefToken, txt, line, col)) ::
     (Pattern.compile("^(if)"), (txt: String, line: Integer, col: Integer) => new Token(IfToken, txt, line, col)) ::
     (Pattern.compile("^(else)"), (txt: String, line: Integer, col: Integer) => new Token(ElseToken, txt, line, col)) ::
@@ -125,9 +126,9 @@ case class NormalModeScanner(override val content: String, override val state: S
         case EqualToken|GreaterEqualToken|LessEqualToken|GreaterToken|LessToken|
              NotEqualToken|BooleanAndToken|BooleanOrToken|
              ArithDivideToken|ArithMultToken|PlusToken|MinusToken|
-             IdentifierToken|NumberToken|StringToken|LParanToken|RParanToken|
+             IdentifierToken|NumberToken|BooleanConstantToken|StringToken|LParanToken|RParanToken|
              LCurlyBracket|RCurlyBracket|ColumnToken|CommaToken|DefToken|IfToken|ElseToken|
-             AssignToken
+             AssignToken|LetToken
          => (result, NormalModeScanner(content, state.copy(position=state.position + result.txt.size,col=state.col+result.txt.size)))
         case SpaceToken => NormalModeScanner(content, state.copy(position=state.position + result.txt.size,col=state.col+result.txt.size)).nextToken
         case NewLineToken => NormalModeScanner(content, state.copy(position=state.position + result.txt.size, col=0, line=state.line+1)).nextToken
