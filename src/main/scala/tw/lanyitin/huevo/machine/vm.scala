@@ -3,8 +3,7 @@ import java.nio.ByteBuffer
 import scala.annotation.tailrec
 import scala .collection.immutable.Map
 import java.io.PrintStream
-case class VM(_instructions: List[String], stack: Stack[HObject]=ListStack(Nil), ip_stack: Stack[Int]=ListStack(0 :: Nil),  heap: Heap=Heap(), stdout:PrintStream=System.out, stderr:PrintStream=System.err) {
-
+case class VM(_instructions: List[String], stack: Stack[HObject]=ListStack(Nil), ip_stack: Stack[Int]=ListStack(0 :: Nil),  heap: Heap=Heap(), stdout:PrintStream=System.out, stderr:PrintStream=System.err, debug: Boolean=false) {
   def label_analysis: (List[String], Map[String, Int]) = {
     @tailrec
     def loop(ip: Int, new_ip: Int, new_instructions: List[String], labels: Map[String, Int]): (List[String], Map[String, Int]) = {
@@ -28,6 +27,9 @@ case class VM(_instructions: List[String], stack: Stack[HObject]=ListStack(Nil),
         vm
       } else {
         val instruction: List[String] = vm.instructions(vm.ip_stack.top).split(" ").toList
+        if (debug) {
+          stdout.print(instruction + "\n")
+        }
         val v2: VM = instruction(0) match {
           case "nop" => vm.nop
           case "print" => vm.print
@@ -35,8 +37,12 @@ case class VM(_instructions: List[String], stack: Stack[HObject]=ListStack(Nil),
             val operand = instruction(1).toLowerCase
             if (operand == "true" || operand == "false") {
               vm.push(HObject(operand.toBoolean))
-            } else if (operand.matches("\\d+")) {
-              vm.push(HObject(operand.toInt))
+            } else if (operand.matches("\\d+(\\.\\d+)?")) {
+              if (operand.contains(".")) {
+                vm.push(HObject(operand.toFloat))
+              } else {
+                vm.push(HObject(operand.toInt))
+              }
             } else {
               vm.push(HObject(labels(instruction(1))))
             }

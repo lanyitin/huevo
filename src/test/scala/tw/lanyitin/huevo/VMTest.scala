@@ -35,12 +35,12 @@ class VMSpec extends FlatSpec with Matchers {
       | push 1
       | push 1
       | addi
-      | jmp END_OF_OF
+      | jmp END_OF_IF
       |FALSE_PATH:
       | push 2
       | push 2
       | multiplyi
-      |END_OF_OF:
+      |END_OF_IF:
       | print 
     """.stripMargin('|').split("\\n").toList.map(_.trim).filter(_.length > 0)
     val vm = VM(instructions).run    
@@ -57,12 +57,12 @@ class VMSpec extends FlatSpec with Matchers {
       | push 1
       | push 1
       | addi
-      | jmp END_OF_OF
+      | jmp END_OF_IF
       |FALSE_PATH:
       | push true
       | push true
       | boolean_xor
-      |END_OF_OF:
+      |END_OF_IF:
       | print 
     """.stripMargin('|').split("\\n").toList.map(_.trim).filter(_.length > 0)
     val vm = VM(instructions).run    

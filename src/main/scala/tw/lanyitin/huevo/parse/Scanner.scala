@@ -77,10 +77,9 @@ case class NormalModeScanner(override val content: String, override val state: S
     (Pattern.compile("^(if)"), (txt: String, line: Integer, col: Integer) => new Token(IfToken, txt, line, col)) ::
     (Pattern.compile("^(else)"), (txt: String, line: Integer, col: Integer) => new Token(ElseToken, txt, line, col)) ::
     (Pattern.compile("^(true|false)"), (txt: String, line: Integer, col: Integer) => new Token(BooleanConstantToken, txt, line, col)) ::   
-    (Pattern.compile("^([a-zA-Z][a-zA-Z0-9]*)"), (txt: String, line: Integer, col: Integer) => new Token(IdentifierToken, txt, line, col)) ::
     (Pattern.compile("^(\\r\\n|\\n|\\r)"), (txt: String, line: Integer, col: Integer) => new Token(NewLineToken, txt, line, col)) ::
     (Pattern.compile("^([\\t ]+)"), (txt: String, line: Integer, col: Integer) => new Token(SpaceToken, txt, line, col)) ::
-    (Pattern.compile("^(\\d+)"), (txt: String, line: Integer, col: Integer) => new Token(NumberToken, txt, line, col)) ::
+    (Pattern.compile("^(\\d+(\\.\\d+)?)"), (txt: String, line: Integer, col: Integer) => new Token(NumberToken, txt, line, col)) ::
     (Pattern.compile("^(,)"), (txt: String, line: Integer, col: Integer) => new Token(CommaToken, txt, line, col)) ::
     (Pattern.compile("^(:)"), (txt: String, line: Integer, col: Integer) => new Token(ColumnToken, txt, line, col)) ::
     (Pattern.compile("^(==)"), (txt: String, line: Integer, col: Integer) => new Token(EqualToken, txt, line, col)) ::
@@ -101,6 +100,7 @@ case class NormalModeScanner(override val content: String, override val state: S
     (Pattern.compile("^(\\()"), (txt: String, line: Integer, col: Integer) => new Token(LParanToken, txt, line, col)) ::
     (Pattern.compile("^(\\))"), (txt: String, line: Integer, col: Integer) => new Token(RParanToken, txt, line, col)) ::
     (Pattern.compile("^(#)"), (txt: String, line: Integer, col: Integer) => new Token(CommentHeadToken, txt, line, col)) ::
+    (Pattern.compile("^([a-zA-Z][a-zA-Z0-9]*)"), (txt: String, line: Integer, col: Integer) => new Token(IdentifierToken, txt, line, col)) ::
     Nil
   def nextToken: (Token, Scanner) = {
     // TODO: rewrite loop with built-in operation like collectFirst

@@ -6,7 +6,8 @@ lazy val commonSettings = Seq(
 lazy val root = (project in file(".")).
   settings(commonSettings: _*).
   settings(
-    name := "huevo"
+    name := "huevo",
+    mainClass in assembly := Some("tw.lanyitin.huevo.Main")
   )
 
 libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.4"

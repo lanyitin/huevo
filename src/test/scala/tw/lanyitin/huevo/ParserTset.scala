@@ -26,7 +26,7 @@ class ParserSpec extends FlatSpec with Matchers {
       result.failed.get.printStackTrace
       fail(result.failed.get)
     } else {
-     println(result.get._1.visualize)
+    //  println(result.get._1.visualize)
     }
   }
 
@@ -41,13 +41,13 @@ class ParserSpec extends FlatSpec with Matchers {
       result.failed.get.printStackTrace
       fail(result.failed.get)
     } else {
-     println(result.get._1.visualize)
+    //  println(result.get._1.visualize)
     }
   }
 
   "A Parser" should "be able to parse if expression without else" in {
     val content = """
-    |def validate(a:Integer, b: Integer): Boolean = if (a > b) {true} else {false}
+    |def validate(a:Integer, b: Integer): Boolean = if (a > b) {true}
     """.stripMargin('|').trim()
     val scanner = Scanner(content)
     val result = Parser.parse(scanner)
@@ -55,7 +55,7 @@ class ParserSpec extends FlatSpec with Matchers {
       result.failed.get.printStackTrace
       fail(result.failed.get)
     } else {
-     println(result.get._1.visualize)
+    //  println(result.get._1.visualize)
     }
   }
 
@@ -74,7 +74,7 @@ class ParserSpec extends FlatSpec with Matchers {
       result.failed.get.printStackTrace
       fail(result.failed.get)
     } else {
-     println(result.get._1.visualize)
+    //  println(result.get._1.visualize)
     }
   }
 
@@ -87,6 +87,8 @@ class ParserSpec extends FlatSpec with Matchers {
     |  2 + 2
     |} else if (a == b) {
     |  2 + 1
+    |} else {
+    |  4
     |}
     """.stripMargin('|').trim()
     val scanner = Scanner(content)
@@ -95,7 +97,7 @@ class ParserSpec extends FlatSpec with Matchers {
       result.failed.get.printStackTrace
       fail(result.failed.get)
     } else {
-     println(result.get._1.visualize)
+    //  println(result.get._1.visualize)
     }
   }
 }
