@@ -30,13 +30,13 @@ class VMSpec extends FlatSpec with Matchers {
       |push true
       |push false
       |boolean_or
-      |push FALSE_PATH
+      |push TRUE_PATH
       |jnz
       | push 1
       | push 1
       | addi
       | jmp END_OF_IF
-      |FALSE_PATH:
+      |TRUE_PATH:
       | push 2
       | push 2
       | multiplyi
@@ -44,7 +44,7 @@ class VMSpec extends FlatSpec with Matchers {
       | print 
     """.stripMargin('|').split("\\n").toList.map(_.trim).filter(_.length > 0)
     val vm = VM(instructions).run    
-    assert(vm.stack.top.toString=="2")
+    assert(vm.stack.top.toString=="4")
   }
 
   it should "able to handle if expression (case 2)" in {
@@ -52,13 +52,13 @@ class VMSpec extends FlatSpec with Matchers {
       |push true
       |push false
       |boolean_and
-      |push FALSE_PATH
+      |push TRUE_PATH
       |jnz
       | push 1
       | push 1
       | addi
       | jmp END_OF_IF
-      |FALSE_PATH:
+      |TRUE_PATH:
       | push true
       | push true
       | boolean_xor
@@ -66,6 +66,6 @@ class VMSpec extends FlatSpec with Matchers {
       | print 
     """.stripMargin('|').split("\\n").toList.map(_.trim).filter(_.length > 0)
     val vm = VM(instructions).run    
-    assert(vm.stack.top.toString=="false")
+    assert(vm.stack.top.toString=="2")
   }
 }

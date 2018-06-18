@@ -189,6 +189,8 @@ abstract class TreeVisitor[T] {
     } else if (expr.isInstanceOf[ExprsBlock]) {
       val e = expr.asInstanceOf[ExprsBlock]
       flat(e.exprs.map(e2 => this.visit(e2)))
+    } else if (expr.isInstanceOf[IfExpression]) {
+      this.visitIfExpression(expr.asInstanceOf[IfExpression])
     } else {
       throw new Exception(s"unable to visit ${expr}")
     }
@@ -197,4 +199,5 @@ abstract class TreeVisitor[T] {
   def visitIntegerLiteral(literal: IntegerLiteralExpression): T
   def visitFloatLiteral(literal: FloatLiteralExpression): T
   def visitOperationCallExp(expr: OperationCallExpression): T
+  def visitIfExpression(expr: IfExpression): T
 }

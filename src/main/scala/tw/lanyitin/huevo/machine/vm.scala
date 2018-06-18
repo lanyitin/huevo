@@ -221,10 +221,11 @@ case class VM(_instructions: List[String], stack: Stack[HObject]=ListStack(Nil),
   def jnz = {
     val (label:HObject, s1: Stack[HObject]) = stack.pop
     val (condition:HObject, s2: Stack[HObject]) = s1.pop
+    println(condition.getBoolean)
     if (condition.getBoolean) {
-      this.copy(stack=s2, ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
-    } else {
       this.copy(stack=s2, ip_stack=ListStack(label.getInt :: ip_stack.list.tail))
+    } else {
+      this.copy(stack=s2, ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
     }
   }
 
