@@ -94,6 +94,7 @@ case class NormalModeScanner(override val content: String, override val state: S
     (Pattern.compile("^(\\*)"), (txt: String, line: Integer, col: Integer) => new Token(ArithMultToken, txt, line, col)) ::
     (Pattern.compile("^(/)"), (txt: String, line: Integer, col: Integer) => new Token(ArithDivideToken, txt, line, col)) ::
     (Pattern.compile("^(\\+)"), (txt: String, line: Integer, col: Integer) => new Token(PlusToken, txt, line, col)) ::
+    (Pattern.compile("^(%)"), (txt: String, line: Integer, col: Integer) => new Token(ModToken, txt, line, col)) ::
     (Pattern.compile("^(-)"), (txt: String, line: Integer, col: Integer) => new Token(MinusToken, txt, line, col)) ::
     (Pattern.compile("^(\\{)"), (txt: String, line: Integer, col: Integer) => new Token(LCurlyBracket, txt, line, col)) ::
     (Pattern.compile("^(\\})"), (txt: String, line: Integer, col: Integer) => new Token(RCurlyBracket, txt, line, col)) ::
@@ -128,7 +129,7 @@ case class NormalModeScanner(override val content: String, override val state: S
              ArithDivideToken|ArithMultToken|PlusToken|MinusToken|
              IdentifierToken|NumberToken|BooleanConstantToken|StringToken|LParanToken|RParanToken|
              LCurlyBracket|RCurlyBracket|ColumnToken|CommaToken|DefToken|IfToken|ElseToken|
-             AssignToken|LetToken
+             AssignToken|LetToken|ModToken
          => (result, NormalModeScanner(content, state.copy(position=state.position + result.txt.size,col=state.col+result.txt.size)))
         case SpaceToken => NormalModeScanner(content, state.copy(position=state.position + result.txt.size,col=state.col+result.txt.size)).nextToken
         case NewLineToken => NormalModeScanner(content, state.copy(position=state.position + result.txt.size, col=0, line=state.line+1)).nextToken

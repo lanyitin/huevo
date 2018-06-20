@@ -81,6 +81,15 @@ class ReplSpec extends FlatSpec with Matchers {
       |def main(): Unit = add2(1,2)
     """.stripMargin('|').split("\\n").toList.map(_.trim).filter(_.length > 0).mkString("\n")
       Main.eval(instructions, true)
+    assert(Main.top.getInt == 4)
+  }
+
+  "A REPL" should "able to do recursive function call" in {
+    val instructions: String = """
+      |def gcd(a: Integer, b: Integer): Integer = if (b != 0) {gcd(b, a%b)} else a
+      |def main(): Unit = gcd(27,30)
+    """.stripMargin('|').split("\\n").toList.map(_.trim).filter(_.length > 0).mkString("\n")
+      Main.eval(instructions, true)
     assert(Main.top.getInt == 3)
   }
 }

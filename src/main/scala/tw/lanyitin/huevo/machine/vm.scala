@@ -78,6 +78,8 @@ case class VM(
           case "subf" => vm.subf
           case "multiplyi" => vm.multiplyi
           case "multiplyf" => vm.multiplyf
+          case "modi" => vm.modi
+          case "modf" => vm.modf
           case "dividei" => vm.dividei
           case "dividef" => vm.dividef
           case "gti" => vm.gti
@@ -189,6 +191,18 @@ case class VM(
     val (b:HObject, s2: Stack[HObject]) = s1.pop
     val result = HObject(a.getFloat * b.getFloat)
     this.copy(data_stack=s2.push(result), ip=this.ip+1)
+  }
+  def modi = {
+    val (a:HObject, s1: Stack[HObject]) = data_stack.pop
+    val (b:HObject, s2: Stack[HObject]) = s1.pop
+    val result = HObject(a.getInt % b.getInt)
+    this.copy(data_stack=s2.push(result), ip=this.ip+1)   
+  }
+  def modf = {
+    val (a:HObject, s1: Stack[HObject]) = data_stack.pop
+    val (b:HObject, s2: Stack[HObject]) = s1.pop
+    val result = HObject(a.getFloat % b.getFloat)
+    this.copy(data_stack=s2.push(result), ip=this.ip+1)   
   }
   def dividei = {
     val (a:HObject, s1: Stack[HObject]) = data_stack.pop

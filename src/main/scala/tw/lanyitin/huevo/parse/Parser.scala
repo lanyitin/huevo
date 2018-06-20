@@ -31,6 +31,7 @@ object Parser {
       } else {
         val result = parse_expression(scanner)
         if (result.isFailure) {
+          acc.reverse.foreach(println)
           Failure(result.failed.get)
         } else {
           val (expr: Expression, scanner2: Scanner) = result.get
@@ -95,14 +96,14 @@ object Parser {
       parse_boolean_expression(scanner)
     } else if (next_token.tokenType == IdentifierToken) {
       (next_tokens(1).tokenType) match {
-        case PlusToken | MinusToken | ArithDivideToken | ArithMultToken =>
+        case PlusToken | MinusToken | ArithDivideToken | ArithMultToken | ModToken =>
           parse_arith_expression(scanner)
         case GreaterEqualToken | GreaterToken | LessEqualToken | LessToken |
             EqualToken | NotEqualToken =>
           parse_boolean_expression(scanner)
         case LParanToken =>
           parse_function_call(scanner)
-        case CommaToken | RParanToken | RCurlyBracket | EOFToken =>
+        case CommaToken | RParanToken | RCurlyBracket | EOFToken | DefToken =>
           parse_identifier(scanner)
       }
     } else if (next_token.tokenType == IfToken) {
@@ -304,7 +305,7 @@ object Parser {
   def parse_arith_expression(scanner: Scanner): Try[(Expression, Scanner)] = {
     parse_arith_term(scanner).flatMap(r1 => {
       val (arith_term: Expression, scanner2: Scanner) = r1
-      val matcher = PlusToken or MinusToken
+      val matcher = PlusToken or MinusToken or ModToken
       matcher(scanner2)
         .flatMap(r2 => {
           val (token: List[Token], scanner3: Scanner) = r2
@@ -348,7 +349,11 @@ object Parser {
         Success((BooleanLiteralExpression(token, token.txt.toBoolean), scanner2))
       }
       case IdentifierToken =>
-        parse_identifier(scanner)
+        if (expect(scanner2, LParanToken).isFailure) {
+          parse_identifier(scanner)
+        } else {
+          parse_function_call(scanner)
+        }
       case LParanToken => {
         for ((arith_exp, scanner3) <- parse_arith_expression(scanner2);
              (_, scanner4) <- expect(scanner3, RParanToken))

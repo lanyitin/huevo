@@ -17,7 +17,8 @@ case class Compiler() extends TreeVisitor[List[String]] {
       ">=" -> "gte",
       "<=" -> "lte",
       "==" -> "eq",
-      "!=" -> "neq"
+      "!=" -> "neq",
+      "%" -> "mod"
     )
     def visitBooleanLiteral(literal: BooleanLiteralExpression): List[String] = List(s"push ${literal.value}")
     def visitFloatLiteral(literal: FloatLiteralExpression): List[String] = List(s"push ${literal.value}")
