@@ -21,7 +21,7 @@ class VMSpec extends FlatSpec with Matchers {
       |push false
       |boolean_and
     """.stripMargin('|').split("\\n").toList.map(_.trim).filter(_.length > 0)
-    val vm = VM(instructions,debug=true).run
+    val vm = VM(instructions,debug=false).run
     assert(vm.data_stack.top.toString=="false")
   }
 
@@ -43,7 +43,7 @@ class VMSpec extends FlatSpec with Matchers {
       |END_OF_IF:
       | print 
     """.stripMargin('|').split("\\n").toList.map(_.trim).filter(_.length > 0)
-    val vm = VM(instructions,debug=true).run  
+    val vm = VM(instructions,debug=false).run  
     assert(vm.data_stack.top.toString=="4")
   }
 
@@ -65,7 +65,7 @@ class VMSpec extends FlatSpec with Matchers {
       |END_OF_IF:
       | print 
     """.stripMargin('|').split("\\n").toList.map(_.trim).filter(_.length > 0)
-    val vm = VM(instructions,debug=true).run    
+    val vm = VM(instructions,debug=false).run    
     assert(vm.data_stack.top.toString=="2")
   }
 
@@ -86,8 +86,7 @@ class VMSpec extends FlatSpec with Matchers {
       |addi
       |ret
     """.stripMargin('|').split("\\n").toList.map(_.trim).filter(_.length > 0)
-    val vm = VM(instructions,debug=true).run
-    println(vm)
+    val vm = VM(instructions,debug=false).run
     assert(vm.data_stack.top.toString=="6")
   }
 }

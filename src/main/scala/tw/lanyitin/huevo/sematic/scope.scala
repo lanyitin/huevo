@@ -1,11 +1,13 @@
-package tw.lanyitin.huevo.parse
+package tw.lanyitin.huevo.sematic
 import scala.util.{Try, Success, Failure}
+import tw.lanyitin.huevo.lex._
+import tw.lanyitin.huevo.lex.TokenType._
 
 trait ValueHolder {
   def typ: Type
 }
-case class Parameter(token: Token, typ: Type) extends ValueHolder
-case class Variable(token: Token, typ: Type) extends ValueHolder
+case class Parameter(token: Token, typ: Type, idx: Int) extends ValueHolder
+case class Variable(token: Token, typ: Type, idx: Int) extends ValueHolder
 case class FunctionDeclaration(token: Token, parameters: List[Parameter], typ: Type) extends ValueHolder
 
 
@@ -14,6 +16,7 @@ trait Scope {
   def put(identifier: Token, variable: ValueHolder): Scope
   def up: Scope
   def map: Map[String, ValueHolder]
+  def next_local_id: Int = this.map.values.filter(_.isInstanceOf[Variable]).size
 }
 
 case class TopScope(map: Map[String, ValueHolder]=Map.empty) extends Scope {

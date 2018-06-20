@@ -1,4 +1,4 @@
-package tw.lanyitin.huevo.parse
+package tw.lanyitin.huevo.lex
 
 import java.util.regex.Pattern
 import scala.annotation.tailrec

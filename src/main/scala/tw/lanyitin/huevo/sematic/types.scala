@@ -1,4 +1,4 @@
-package tw.lanyitin.huevo.parse
+package tw.lanyitin.huevo.sematic
 
 trait Type {
   def toString: String

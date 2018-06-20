@@ -3,6 +3,7 @@ import java.nio.ByteBuffer
 import scala.annotation.tailrec
 import scala .collection.immutable.Map
 import java.io.PrintStream
+import scala.util.Try
 case class VM(
   _instructions: List[String],
   data_stack: Stack[HObject]=ListStack(Nil),
@@ -37,7 +38,7 @@ case class VM(
         if (debug) {
           stdout.print(instruction + "\n")
         }
-        val v2: VM = instruction(0) match {
+        val v2: Try[VM] = Try(instruction(0) match {
           case "nop" => vm.nop
           case "print" => vm.print
           case "push" => {
@@ -96,15 +97,24 @@ case class VM(
           case "load_param" => vm.load_param(instruction(1).toInt)
           case "halt" => vm
           case _ => throw new Exception(s"unexpected instruction: ${instruction}")
+        })
+        if (v2.isFailure) {
+          stderr.println(v2.failed.get.getMessage)
+          stderr.println(vm)
         }
         if (instruction(0) == "halt") {
-          v2
+          v2.get
         } else {
-          loop(v2)
+          loop(v2.get)
         }
       }
     }
-    loop(this)
+    if (labels.contains("main")) {
+
+      loop(this.copy(frame_stack=this.frame_stack.push(Frame(_instructions.size, Nil)), ip=labels("main")))
+    } else {
+      loop(this)
+    }
   }
   def print = {
     stdout.println(data_stack.top.toString)
@@ -339,5 +349,14 @@ case class VM(
       val (obj: HObject, v2: Stack[HObject]) = stack.pop
       generate_argument_list(v2, num-1, obj :: acc)
     }
+  }
+
+  override def toString = {
+    s"""VM(\n
+      ${_instructions}
+      ${ip}
+      ${_instructions(ip)}
+      ${data_stack}
+    )"""
   }
 }

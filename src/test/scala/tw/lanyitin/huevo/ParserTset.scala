@@ -3,9 +3,9 @@ package tw.lanyitin.huevo.parse
 import org.scalatest._
 import java.io.File
 import java.io.FileWriter
+import tw.lanyitin.huevo.lex.Scanner
 
 class ParserSpec extends FlatSpec with Matchers {
-  import TokenType._
   // TODO: more test cases
   "A Parser" should "be able to parse function definition" in {
     val content = """

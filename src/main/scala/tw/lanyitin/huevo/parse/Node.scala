@@ -1,6 +1,9 @@
 package tw.lanyitin.huevo.parse
 import java.util.Locale
 import scala.annotation.tailrec
+import tw.lanyitin.huevo.lex._
+import tw.lanyitin.huevo.lex.TokenType._
+import tw.lanyitin.huevo.sematic._
 
 trait TreeNode {
   def visualize: String
@@ -90,7 +93,7 @@ case class IfExpression(condition: Expression,
   }
 }
 
-case class IdentifierExpression(token: Token, typ: Type)
+case class IdentifierExpression(token: Token, holder: ValueHolder)
     extends ValueExpression {
   def visualize =
     "%s [label=\"%s:%s %d,%d\"]".format(this.id,
@@ -98,6 +101,7 @@ case class IdentifierExpression(token: Token, typ: Type)
                                      this.typ,
                                      this.token.line,
                                      this.token.col)
+  def typ:Type = holder.typ
 }
 
 trait LiteralExpression[T] extends ValueExpression {
@@ -195,6 +199,8 @@ abstract class TreeVisitor[T] {
       this.visitFunctionCallExpression(expr.asInstanceOf[FunctionCallExpression])
     } else if (expr.isInstanceOf[FunctionDefinitionExpression]) {
       this.visitFunctionDefinitionExpression(expr.asInstanceOf[FunctionDefinitionExpression])
+    } else if (expr.isInstanceOf[IdentifierExpression]) {
+      this.visitIdentifierExpression(expr.asInstanceOf[IdentifierExpression])
     } else {
       throw new Exception(s"unable to visit ${expr}")
     }
@@ -206,4 +212,5 @@ abstract class TreeVisitor[T] {
   def visitIfExpression(expr: IfExpression): T
   def visitFunctionCallExpression(exrp: FunctionCallExpression): T
   def visitFunctionDefinitionExpression(exrp: FunctionDefinitionExpression): T
+  def visitIdentifierExpression(expr: IdentifierExpression): T
 }

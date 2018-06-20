@@ -1,9 +1,12 @@
 package tw.lanyitin.huevo.parse
 
-import TokenType._
+
 import scala.annotation.tailrec
 import scala.util.{Try, Success, Failure}
 import scala.language.implicitConversions
+import tw.lanyitin.huevo.lex._
+import tw.lanyitin.huevo.lex.TokenType._
+import tw.lanyitin.huevo.sematic._
 
 object Parser {
   import MatcherGenerator._
@@ -72,8 +75,15 @@ object Parser {
     }
   }
 
+  def parse_identifier(scanner: Scanner): Try[(IdentifierExpression, Scanner)] = {
+    val (t, s) = scanner.nextToken
+    this.scope.find(t).flatMap(variable => {
+      Success((IdentifierExpression(t, variable), s))
+    })
+  }
+
   def parse_expression(scanner: Scanner): Try[(Expression, Scanner)] = {
-    val next_tokens = scanner.take(2)
+    val next_tokens = scanner.take(4)
     val next_token = next_tokens(0)
     if (next_token.tokenType == LetToken) {
       parse_variable_definition(scanner)
@@ -93,10 +103,7 @@ object Parser {
         case LParanToken =>
           parse_function_call(scanner)
         case CommaToken | RParanToken | RCurlyBracket | EOFToken =>
-          val (t, s) = scanner.nextToken
-          this.scope.find(next_token).flatMap(variable => {
-            Success((IdentifierExpression(next_token, variable.typ), s))
-          })
+          parse_identifier(scanner)
       }
     } else if (next_token.tokenType == IfToken) {
       parse_if_expression(scanner)
@@ -107,7 +114,7 @@ object Parser {
     } else {
       val current_line = scanner.content.split("\n")(next_token.line)
       Failure(new Exception(
-        s"unexpected token ${next_token.tokenType.toString}\n${next_token.line + 1} ${current_line}"))
+        s"unexpected token ${next_tokens.map(_.txt)}\n${next_token.line + 1} ${current_line}"))
     }
   }
 
@@ -118,7 +125,7 @@ object Parser {
       (_, scanner4: Scanner) <- expect(scanner3,byType(AssignToken));
       (value: Expression, scanner5: Scanner) <- parse_expression(scanner4)
     ) yield ({
-      val variable = Variable(tokens(1), typ)
+      val variable = Variable(tokens(1), typ, this.scope.next_local_id)
       this.scope = this.scope.put(variable.token, variable)
       (VariableDefinitionExpression(variable, value), scanner5)
     })
@@ -210,7 +217,7 @@ object Parser {
           val (tokens: List[Token], scanner2: Scanner) = r1
           tokens(0).tokenType match {
             case IdentifierToken => this.scope.find(tokens(0)).flatMap(variable => {
-              Success((IdentifierExpression(tokens(0), variable.typ), scanner2))
+              Success((IdentifierExpression(tokens(0), variable), scanner2))
             })
             case BooleanConstantToken => Success((BooleanLiteralExpression(tokens(0), tokens(0).txt.toBoolean), scanner2))
           }
@@ -250,25 +257,30 @@ object Parser {
         case "Float" => Success((HFloat, r._2))
         case "Integer" => Success((HInteger, r._2))
         case "Boolean" => Success((HBoolean, r._2))
+        case "Unit" => Success((AnyValue, r._2))
         case _ => Failure(new Exception(s"unresolved type ${r._1(0)}"))
       }
     })
   }
 
   def parse_parameter_list(scanner: Scanner): Try[(List[Parameter], Scanner)] = {
-    for ((tokens, scanner2) <- expect(
+    if (expect(scanner, RParanToken).isSuccess) {
+      expect(scanner, byType(RParanToken)).flatMap(_ => {Success((Nil, scanner))})
+    } else {
+      for ((tokens, scanner2) <- expect(
            scanner,
            byType(IdentifierToken) + byType(ColumnToken));
          (type_node, scanner3) <- parse_type(scanner2))
       yield
         ({
           val (rest_args, scanner4: Scanner) = parse_rest_arg_list(scanner3)
-          val parameters = Parameter(tokens(0), type_node) :: rest_args
+          val parameters = Parameter(tokens(0), type_node, 0) :: rest_args
           parameters.foreach(p => {
             this.scope = this.scope.put(p.token, p)
           })
           (parameters, scanner4)
         })
+    }
   }
 
   def parse_rest_arg_list(scanner: Scanner,
@@ -282,7 +294,7 @@ object Parser {
           val (type_node: Type, scanner3: Scanner) = r2
           Success(
             parse_rest_arg_list(scanner3,
-                                Parameter(tokens(1), type_node) :: acc))
+                                Parameter(tokens(1), type_node, acc.size+1) :: acc))
         })
       })
       .orElse(Success((acc.reverse, scanner)))
@@ -336,9 +348,7 @@ object Parser {
         Success((BooleanLiteralExpression(token, token.txt.toBoolean), scanner2))
       }
       case IdentifierToken =>
-        this.scope.find(token).flatMap(variable => {
-          Success((IdentifierExpression(token, variable.typ), scanner2))
-        })
+        parse_identifier(scanner)
       case LParanToken => {
         for ((arith_exp, scanner3) <- parse_arith_expression(scanner2);
              (_, scanner4) <- expect(scanner3, RParanToken))

@@ -75,13 +75,12 @@ class ReplSpec extends FlatSpec with Matchers {
   }
 
   "A REPL" should "able to do function call" in {
-    val instructions: List[String] = """
+    val instructions: String = """
       |def add(a: Integer, b: Integer): Integer = {a + b}
-      |add(1,2)
-    """.stripMargin('|').split("\\n").toList.map(_.trim).filter(_.length > 0)
-    instructions.foreach(inst => {
-      Main.eval(inst)
-    })
+      |def add2(a: Integer, b: Integer): Integer = {a + add(a,b)}
+      |def main(): Unit = add2(1,2)
+    """.stripMargin('|').split("\\n").toList.map(_.trim).filter(_.length > 0).mkString("\n")
+      Main.eval(instructions, true)
     assert(Main.top.getInt == 3)
   }
 }
