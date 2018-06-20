@@ -6,7 +6,7 @@ trait ValueHolder {
 }
 case class Parameter(token: Token, typ: Type) extends ValueHolder
 case class Variable(token: Token, typ: Type) extends ValueHolder
-case class FunctionDeclaration(identifier: Token, parameters: List[Parameter], typ: Type) extends ValueHolder
+case class FunctionDeclaration(token: Token, parameters: List[Parameter], typ: Type) extends ValueHolder
 
 
 trait Scope {

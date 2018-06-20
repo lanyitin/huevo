@@ -3,10 +3,12 @@ package tw.lanyitin.huevo
 import parse._
 import machine.VM
 import scala.util.Random
+// import scala.scalajs.js.annotation.JSExport
 
+// @JSExport
 object Main {
   var vm: VM = VM(Nil,debug=true)
-  def top = vm.stack.top
+  def top = vm.data_stack.top
   def main(args: Array[String]): Unit = {
     var running: Boolean = true
     var inputString: String = ""
@@ -18,11 +20,11 @@ object Main {
         running = false
       } else {
         eval(inputString)
-        println(this.top)
       }
     }
   }
 
+  // @JSExport
   def eval(str: String): Unit = {
     val scanner = Scanner(str)
     val result = Parser.parse(scanner)
@@ -31,6 +33,7 @@ object Main {
     } else {
       val inst:List[String] = compile(result.get._1)
       vm=vm.copy(_instructions=vm.instructions ::: inst).run
+      println(this.top)
     }
   }
 
@@ -70,15 +73,21 @@ object Main {
       while (id < 0) {
         id = random.nextInt
       }
-      val ret = this.visit(expr.condition) ::: 
+      this.visit(expr.condition) ::: 
        List(s"push TRUE_OF_IF_${id}", s"jnz") ::: 
        this.visit(expr.false_path) :::
        List(s"jmp END_OF_IF_${id}") ::: 
        List(s"TRUE_OF_IF_${id}:") ::: 
        this.visit(expr.true_path) ::: 
        List(s"END_OF_IF_${id}:")
-      println("===\n" + ret.mkString("\n") + "====\n")
-      ret
+    }
+    def visitFunctionCallExpression(expr: FunctionCallExpression): List[String] = {
+      val parameter_codes:List[String] = expr.parameters.map(this.visit(_)).toList.flatten
+      val code: List[String] = List(parameter_codes, List(s"push ${expr.declaration.token.txt}","call")).flatten
+      code
+    }
+    def visitFunctionDefinitionExpression(expr: FunctionDefinitionExpression): List[String] = {
+      List(List(s"${expr.declaration.token.txt}:"), this.visit(expr.body)).flatten
     }
   }
 

@@ -38,7 +38,7 @@ case class FunctionDefinitionExpression(declaration: FunctionDeclaration,
     val arg_types =
       declaration.parameters.map(_.typ).map(_.toString).mkString(",")
     val ret_type = declaration.typ
-    val identifier = declaration.identifier
+    val identifier = declaration.token
 
     (body.visualize ::
       s"${this.id} -> ${body.id}\n" ::
@@ -167,9 +167,9 @@ case class FunctionCallExpression(declaration: FunctionDeclaration,
   def typ: Type = declaration.typ
   def visualize = {
     ("%s [label=\"%s %d,%d\"]".format(this.id,
-                                      declaration.identifier.txt,
-                                      declaration.identifier.line,
-                                      declaration.identifier.col) ::
+                                      declaration.token.txt,
+                                      declaration.token.line,
+                                      declaration.token.col) ::
       List(parameters: _*).map(_.visualize) :::
       List(parameters: _*).map(a => s"${this.id} -> ${a.id}")).mkString("\n")
   }
@@ -191,6 +191,10 @@ abstract class TreeVisitor[T] {
       flat(e.exprs.map(e2 => this.visit(e2)))
     } else if (expr.isInstanceOf[IfExpression]) {
       this.visitIfExpression(expr.asInstanceOf[IfExpression])
+    } else if (expr.isInstanceOf[FunctionCallExpression]) {
+      this.visitFunctionCallExpression(expr.asInstanceOf[FunctionCallExpression])
+    } else if (expr.isInstanceOf[FunctionDefinitionExpression]) {
+      this.visitFunctionDefinitionExpression(expr.asInstanceOf[FunctionDefinitionExpression])
     } else {
       throw new Exception(s"unable to visit ${expr}")
     }
@@ -200,4 +204,6 @@ abstract class TreeVisitor[T] {
   def visitFloatLiteral(literal: FloatLiteralExpression): T
   def visitOperationCallExp(expr: OperationCallExpression): T
   def visitIfExpression(expr: IfExpression): T
+  def visitFunctionCallExpression(exrp: FunctionCallExpression): T
+  def visitFunctionDefinitionExpression(exrp: FunctionDefinitionExpression): T
 }

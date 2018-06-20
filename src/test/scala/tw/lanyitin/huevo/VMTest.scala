@@ -21,8 +21,8 @@ class VMSpec extends FlatSpec with Matchers {
       |push false
       |boolean_and
     """.stripMargin('|').split("\\n").toList.map(_.trim).filter(_.length > 0)
-    val vm = VM(instructions).run
-    assert(vm.stack.top.toString=="false")
+    val vm = VM(instructions,debug=true).run
+    assert(vm.data_stack.top.toString=="false")
   }
 
   it should "able to handle if expression" in {
@@ -43,8 +43,8 @@ class VMSpec extends FlatSpec with Matchers {
       |END_OF_IF:
       | print 
     """.stripMargin('|').split("\\n").toList.map(_.trim).filter(_.length > 0)
-    val vm = VM(instructions).run    
-    assert(vm.stack.top.toString=="4")
+    val vm = VM(instructions,debug=true).run  
+    assert(vm.data_stack.top.toString=="4")
   }
 
   it should "able to handle if expression (case 2)" in {
@@ -65,7 +65,29 @@ class VMSpec extends FlatSpec with Matchers {
       |END_OF_IF:
       | print 
     """.stripMargin('|').split("\\n").toList.map(_.trim).filter(_.length > 0)
-    val vm = VM(instructions).run    
-    assert(vm.stack.top.toString=="2")
+    val vm = VM(instructions,debug=true).run    
+    assert(vm.data_stack.top.toString=="2")
+  }
+
+  it should "able to handle function call" in {
+    val instructions: List[String] = """
+      |push 1
+      |push 2
+      |push add_int
+      |call 2
+      |print
+      |duplicate
+      |push add_int
+      |call 2
+      |halt
+      |add_int:
+      |load_param 0
+      |load_param 1
+      |addi
+      |ret
+    """.stripMargin('|').split("\\n").toList.map(_.trim).filter(_.length > 0)
+    val vm = VM(instructions,debug=true).run
+    println(vm)
+    assert(vm.data_stack.top.toString=="6")
   }
 }

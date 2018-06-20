@@ -222,7 +222,7 @@ object Parser {
     this.openScope
     for ((fun_decl, scanner2) <- parse_function_declaration(scanner);
          (tokens, scanner3) <- {
-           val newUp = this.scope.up.put(fun_decl.identifier, fun_decl)
+           val newUp = this.scope.up.put(fun_decl.token, fun_decl)
            this.scope = SubScope(newUp, this.scope.map)
            expect(scanner2, AssignToken)
          };

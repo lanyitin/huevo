@@ -3,7 +3,14 @@ import java.nio.ByteBuffer
 import scala.annotation.tailrec
 import scala .collection.immutable.Map
 import java.io.PrintStream
-case class VM(_instructions: List[String], stack: Stack[HObject]=ListStack(Nil), ip_stack: Stack[Int]=ListStack(0 :: Nil),  heap: Heap=Heap(), stdout:PrintStream=System.out, stderr:PrintStream=System.err, debug: Boolean=false) {
+case class VM(
+  _instructions: List[String],
+  data_stack: Stack[HObject]=ListStack(Nil),
+  frame_stack: Stack[Frame]=ListStack(Nil),
+  ip: Int=0,
+  stdout:PrintStream=System.out,
+  stderr:PrintStream=System.err,
+  debug: Boolean=false) {
   def label_analysis: (List[String], Map[String, Int]) = {
     @tailrec
     def loop(ip: Int, new_ip: Int, new_instructions: List[String], labels: Map[String, Int]): (List[String], Map[String, Int]) = {
@@ -23,10 +30,10 @@ case class VM(_instructions: List[String], stack: Stack[HObject]=ListStack(Nil),
   def run = {
     @tailrec
     def loop(vm: VM):VM = {
-      if (vm.ip_stack.top >= vm.instructions.size) {
+      if (vm.ip >= vm.instructions.size) {
         vm
       } else {
-        val instruction: List[String] = vm.instructions(vm.ip_stack.top).split(" ").toList
+        val instruction: List[String] = vm.instructions(vm.ip).split(" ").toList
         if (debug) {
           stdout.print(instruction + "\n")
         }
@@ -84,225 +91,253 @@ case class VM(_instructions: List[String], stack: Stack[HObject]=ListStack(Nil),
           case "eqf" => vm.eqf
           case "neqi" => vm.neqi
           case "neqf" => vm.neqf
+          case "call" => vm.call(instruction(1).toInt)
+          case "ret" => vm.ret
+          case "load_param" => vm.load_param(instruction(1).toInt)
+          case "halt" => vm
           case _ => throw new Exception(s"unexpected instruction: ${instruction}")
         }
-        loop(v2)
+        if (instruction(0) == "halt") {
+          v2
+        } else {
+          loop(v2)
+        }
       }
     }
     loop(this)
   }
   def print = {
-    stdout.println(stack.top.toString)
-    this.copy(ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
+    stdout.println(data_stack.top.toString)
+    this.copy(ip=this.ip+1)
   }
   def nop = {
-    this.copy(ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
+    this.copy(ip=this.ip+1)
   }
 
   def jmp(addr: Int) = {
-    this.copy(ip_stack=ListStack(addr :: ip_stack.list.tail))
-  }
-
-  // TODO
-  def load(hashCode: Integer) = {
-    this.copy(stack=stack.push(heap.find(hashCode)), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
+    this.copy(ip=addr)
   }
 
   def push(value: HObject) = {
-    this.copy(stack=stack.push(value), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
+    this.copy(data_stack=data_stack.push(value), ip=this.ip+1)
   }
 
   def pop = {
-    val (v: HObject, s: Stack[HObject]) = stack.pop
-    (v, this.copy(stack=s, ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail)))
+    val (v: HObject, s: Stack[HObject]) = data_stack.pop
+    (v, this.copy(data_stack=s, ip=this.ip+1))
   }
 
   def duplicate = {
-    this.copy(stack=stack.push(stack.top), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
+    this.copy(data_stack=data_stack.push(data_stack.top), ip=this.ip+1)
   }
 
   def swap = {
-    val (a: HObject, s1: Stack[HObject]) = stack.pop
+    val (a: HObject, s1: Stack[HObject]) = data_stack.pop
     val (b: HObject, s2: Stack[HObject]) = s1.pop
-    this.copy(stack=stack.push(a).push(b), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
+    this.copy(data_stack=data_stack.push(a).push(b), ip=this.ip+1)
   }
 
   def rotate = {
-    val (a: HObject, s1: Stack[HObject]) = stack.pop
+    val (a: HObject, s1: Stack[HObject]) = data_stack.pop
     val (b: HObject, s2: Stack[HObject]) = s1.pop
     val (c: HObject, s3: Stack[HObject]) = s2.pop
-    this.copy(stack=stack.push(b).push(a).push(c), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
+    this.copy(data_stack=data_stack.push(b).push(a).push(c), ip=this.ip+1)
   }
 
   def addi = {
-    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (a:HObject, s1: Stack[HObject]) = data_stack.pop
     val (b:HObject, s2: Stack[HObject]) = s1.pop
     val result = HObject(a.getInt + b.getInt)
-    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
+    this.copy(data_stack=s2.push(result), ip=this.ip+1)
   }
   def addf = {
-    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (a:HObject, s1: Stack[HObject]) = data_stack.pop
     val (b:HObject, s2: Stack[HObject]) = s1.pop
     val result = HObject(a.getFloat + b.getFloat)
-    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
+    this.copy(data_stack=s2.push(result), ip=this.ip+1)
   }
   def subi = {
-    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (a:HObject, s1: Stack[HObject]) = data_stack.pop
     val (b:HObject, s2: Stack[HObject]) = s1.pop
     val result = HObject(a.getInt - b.getInt)
-    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
+    this.copy(data_stack=s2.push(result), ip=this.ip+1)
   }
   def subf = {
-    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (a:HObject, s1: Stack[HObject]) = data_stack.pop
     val (b:HObject, s2: Stack[HObject]) = s1.pop
     val result = HObject(a.getFloat - b.getFloat)
-    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
+    this.copy(data_stack=s2.push(result), ip=this.ip+1)
   }
   def multiplyi = {
-    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (a:HObject, s1: Stack[HObject]) = data_stack.pop
     val (b:HObject, s2: Stack[HObject]) = s1.pop
     val result = HObject(a.getInt * b.getInt)
-    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
+    this.copy(data_stack=s2.push(result), ip=this.ip+1)
   }
   def multiplyf = {
-    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (a:HObject, s1: Stack[HObject]) = data_stack.pop
     val (b:HObject, s2: Stack[HObject]) = s1.pop
     val result = HObject(a.getFloat * b.getFloat)
-    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
+    this.copy(data_stack=s2.push(result), ip=this.ip+1)
   }
   def dividei = {
-    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (a:HObject, s1: Stack[HObject]) = data_stack.pop
     val (b:HObject, s2: Stack[HObject]) = s1.pop
     val result = HObject(b.getInt / a.getInt)
-    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
+    this.copy(data_stack=s2.push(result), ip=this.ip+1)
   }
   def dividef = {
-    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (a:HObject, s1: Stack[HObject]) = data_stack.pop
     val (b:HObject, s2: Stack[HObject]) = s1.pop
     val result = HObject(b.getFloat / a.getFloat)
-    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
+    this.copy(data_stack=s2.push(result), ip=this.ip+1)
   }
 
   def boolean_not = {
-    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (a:HObject, s1: Stack[HObject]) = data_stack.pop
     val result = HObject(!a.getBoolean)
-    this.copy(stack=s1.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
+    this.copy(data_stack=s1.push(result), ip=this.ip+1)
   }
 
   def boolean_and = {
-    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (a:HObject, s1: Stack[HObject]) = data_stack.pop
     val (b:HObject, s2: Stack[HObject]) = s1.pop
     val result = HObject(a.getBoolean && b.getBoolean)
-    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))    
+    this.copy(data_stack=s2.push(result), ip=this.ip+1)
   }
 
   def boolean_or = {
-    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (a:HObject, s1: Stack[HObject]) = data_stack.pop
     val (b:HObject, s2: Stack[HObject]) = s1.pop
     val result = HObject(a.getBoolean || b.getBoolean)
-    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))    
+    this.copy(data_stack=s2.push(result), ip=this.ip+1)
   }
 
   def boolean_xor = {
-    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (a:HObject, s1: Stack[HObject]) = data_stack.pop
     val (b:HObject, s2: Stack[HObject]) = s1.pop
     val (x:Boolean,y: Boolean) = (a.getBoolean, b.getBoolean)
     val result = HObject((x || y) && !(x && y))
-    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))    
+    this.copy(data_stack=s2.push(result), ip=this.ip+1)
   }
 
   def boolean_equal = {
-    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (a:HObject, s1: Stack[HObject]) = data_stack.pop
     val (b:HObject, s2: Stack[HObject]) = s1.pop
     val result = HObject(a.getBoolean == b.getBoolean)
-    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
+    this.copy(data_stack=s2.push(result), ip=this.ip+1)
   }
 
   def jnz = {
-    val (label:HObject, s1: Stack[HObject]) = stack.pop
+    val (label:HObject, s1: Stack[HObject]) = data_stack.pop
     val (condition:HObject, s2: Stack[HObject]) = s1.pop
-    println(condition.getBoolean)
     if (condition.getBoolean) {
-      this.copy(stack=s2, ip_stack=ListStack(label.getInt :: ip_stack.list.tail))
+      this.copy(data_stack=s2, ip=label.getInt)
     } else {
-      this.copy(stack=s2, ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))
+      this.copy(data_stack=s2, ip=this.ip+1)
     }
   }
 
   def gti = {
-    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (a:HObject, s1: Stack[HObject]) = data_stack.pop
     val (b:HObject, s2: Stack[HObject]) = s1.pop
     val result = HObject(a.getInt > b.getInt)
-    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))     
+    this.copy(data_stack=s2.push(result), ip=this.ip+1)
   }
   def gtf = {
-    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (a:HObject, s1: Stack[HObject]) = data_stack.pop
     val (b:HObject, s2: Stack[HObject]) = s1.pop
     val result = HObject(a.getFloat > b.getFloat)
-    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))     
+    this.copy(data_stack=s2.push(result), ip=this.ip+1)
   }
   def gtei = {
-    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (a:HObject, s1: Stack[HObject]) = data_stack.pop
     val (b:HObject, s2: Stack[HObject]) = s1.pop
     val result = HObject(a.getInt >= b.getInt)
-    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))     
+    this.copy(data_stack=s2.push(result), ip=this.ip+1)
   }
   def gtef = {
-    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (a:HObject, s1: Stack[HObject]) = data_stack.pop
     val (b:HObject, s2: Stack[HObject]) = s1.pop
     val result = HObject(a.getFloat >= b.getFloat)
-    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))     
+    this.copy(data_stack=s2.push(result), ip=this.ip+1)
   }
   def lti = {
-    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (a:HObject, s1: Stack[HObject]) = data_stack.pop
     val (b:HObject, s2: Stack[HObject]) = s1.pop
     val result = HObject(a.getInt < b.getInt)
-    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))     
+    this.copy(data_stack=s2.push(result), ip=this.ip+1)
   }
   def ltf = {
-    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (a:HObject, s1: Stack[HObject]) = data_stack.pop
     val (b:HObject, s2: Stack[HObject]) = s1.pop
     val result = HObject(a.getFloat < b.getFloat)
-    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))     
+    this.copy(data_stack=s2.push(result), ip=this.ip+1)
   }
   def ltei = {
-    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (a:HObject, s1: Stack[HObject]) = data_stack.pop
     val (b:HObject, s2: Stack[HObject]) = s1.pop
     val result = HObject(a.getInt <= b.getInt)
-    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))     
+    this.copy(data_stack=s2.push(result), ip=this.ip+1)
   }
   def ltef = {
-    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (a:HObject, s1: Stack[HObject]) = data_stack.pop
     val (b:HObject, s2: Stack[HObject]) = s1.pop
     val result = HObject(a.getFloat <= b.getFloat)
-    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))     
+    this.copy(data_stack=s2.push(result), ip=this.ip+1)
   }
 
   def eqi = {
-    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (a:HObject, s1: Stack[HObject]) = data_stack.pop
     val (b:HObject, s2: Stack[HObject]) = s1.pop
     val result = HObject(a.getInt == b.getInt)
-    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))     
+    this.copy(data_stack=s2.push(result), ip=this.ip+1)
   }
 
   def eqf = {
-    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (a:HObject, s1: Stack[HObject]) = data_stack.pop
     val (b:HObject, s2: Stack[HObject]) = s1.pop
     val result = HObject(a.getFloat == b.getFloat)
-    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))     
+    this.copy(data_stack=s2.push(result), ip=this.ip+1)
   }
 
   def neqi = {
-    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (a:HObject, s1: Stack[HObject]) = data_stack.pop
     val (b:HObject, s2: Stack[HObject]) = s1.pop
     val result = HObject(a.getInt != b.getInt)
-    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))     
+    this.copy(data_stack=s2.push(result), ip=this.ip+1)
   }
 
   def neqf = {
-    val (a:HObject, s1: Stack[HObject]) = stack.pop
+    val (a:HObject, s1: Stack[HObject]) = data_stack.pop
     val (b:HObject, s2: Stack[HObject]) = s1.pop
     val result = HObject(a.getFloat != b.getFloat)
-    this.copy(stack=s2.push(result), ip_stack=ListStack((ip_stack.top + 1) :: ip_stack.list.tail))     
+    this.copy(data_stack=s2.push(result), ip=this.ip+1)
+  }
+  // TODO
+  def load(hashCode: Integer) = ???
+
+  def call(num_of_args: Int):VM = {
+    val (function_address: HObject, s1: Stack[HObject]) = data_stack.pop
+    val (arguments: List[HObject], s2: Stack[HObject]) = generate_argument_list(s1, num_of_args)
+    val f = Frame(this.ip, arguments)
+    this.copy(data_stack=s2, frame_stack=this.frame_stack.push(f), ip=function_address.getInt)
+  }
+  def ret = {
+    val (f: Frame, s2:Stack[Frame]) = this.frame_stack.pop
+    this.copy(ip=f.prev_ip + 1, frame_stack=s2)
+  }
+
+  def load_param(num: Int) = {
+    this.copy(data_stack=this.data_stack.push(this.frame_stack.top.arguments(num)), ip=this.ip+1)
+  }
+
+  def generate_argument_list(stack: Stack[HObject], num: Int, acc: List[HObject]=Nil): (List[HObject], Stack[HObject]) = {
+    if (num == 0) {
+      (acc, stack)
+    } else {
+      val (obj: HObject, v2: Stack[HObject]) = stack.pop
+      generate_argument_list(v2, num-1, obj :: acc)
+    }
   }
 }

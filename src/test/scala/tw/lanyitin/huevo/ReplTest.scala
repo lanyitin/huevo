@@ -55,7 +55,6 @@ class ReplSpec extends FlatSpec with Matchers {
   }
 
   "A REPL" should "able to do if expression" in {
-    println()
     val instructions: List[String] = """
       |if (true) true else false
     """.stripMargin('|').split("\\n").toList.map(_.trim).filter(_.length > 0)
@@ -63,5 +62,26 @@ class ReplSpec extends FlatSpec with Matchers {
       Main.eval(inst)
     })
     assert(Main.top.getBoolean == true)
+  }
+
+  "A REPL" should "able to do if expression2" in {
+    val instructions: List[String] = """
+      |if (false) true else false
+    """.stripMargin('|').split("\\n").toList.map(_.trim).filter(_.length > 0)
+    instructions.foreach(inst => {
+      Main.eval(inst)
+    })
+    assert(Main.top.getBoolean == false)
+  }
+
+  "A REPL" should "able to do function call" in {
+    val instructions: List[String] = """
+      |def add(a: Integer, b: Integer): Integer = {a + b}
+      |add(1,2)
+    """.stripMargin('|').split("\\n").toList.map(_.trim).filter(_.length > 0)
+    instructions.foreach(inst => {
+      Main.eval(inst)
+    })
+    assert(Main.top.getInt == 3)
   }
 }
