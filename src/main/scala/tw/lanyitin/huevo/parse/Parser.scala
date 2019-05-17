@@ -13,6 +13,8 @@ object Parser {
 
   var scope: Scope = TopScope()
 
+  var parseOnly = false
+
   def openScope = {
     val newScope = SubScope(this.scope)
     this.scope = newScope
@@ -78,9 +80,15 @@ object Parser {
 
   def parse_identifier(scanner: Scanner): Try[(IdentifierExpression, Scanner)] = {
     val (t, s) = scanner.nextToken
-    this.scope.find(t).flatMap(variable => {
-      Success((IdentifierExpression(t, variable), s))
-    })
+    if (this.parseOnly) {
+      Success((IdentifierExpression(t, null), s))
+    } else {
+      this.scope.find(t).flatMap(variable => {
+        Success((IdentifierExpression(t, variable), s))
+      })
+    }
+
+
   }
 
   def parse_expression(scanner: Scanner): Try[(Expression, Scanner)] = {
@@ -217,9 +225,15 @@ object Parser {
         .flatMap(r1 => {
           val (tokens: List[Token], scanner2: Scanner) = r1
           tokens(0).tokenType match {
-            case IdentifierToken => this.scope.find(tokens(0)).flatMap(variable => {
-              Success((IdentifierExpression(tokens(0), variable), scanner2))
-            })
+            case IdentifierToken => {
+              if (this.parseOnly) {
+                  Success((IdentifierExpression(tokens(0), null), scanner2))
+              } else {
+                this.scope.find(tokens(0)).flatMap(variable => {
+                  Success((IdentifierExpression(tokens(0), variable), scanner2))
+                })
+              }
+            }
             case BooleanConstantToken => Success((BooleanLiteralExpression(tokens(0), tokens(0).txt.toBoolean), scanner2))
           }
         })
