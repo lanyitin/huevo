@@ -33,7 +33,7 @@ object Parser {
       } else {
         val result = parse_expression(scanner)
         if (result.isFailure) {
-          acc.reverse.foreach(println)
+          // acc.reverse.foreach(println)
           Failure(result.failed.get)
         } else {
           val (expr: Expression, scanner2: Scanner) = result.get
@@ -217,7 +217,7 @@ object Parser {
   def parse_boolean_term(scanner: Scanner): Try[(Expression, Scanner)] = {
     val result = for (
       (expr1, scanner2) <- parse_arith_expression(scanner);
-      (tokens, scanner3) <- expect(scanner2,GreaterToken or LessToken or GreaterEqualToken or LessEqualToken or EqualToken or NotEqualToken);
+      (tokens, scanner3) <- expect(scanner2, GreaterEqualToken or LessEqualToken or EqualToken or NotEqualToken or GreaterToken or LessToken);
       (expr2, scanner4) <- parse_arith_expression(scanner3)
     ) yield ((OperationCallExpression(tokens(0), expr1 , expr2), scanner4))
     result.orElse({

@@ -84,7 +84,7 @@ case class NormalModeScanner(override val content: String, override val state: S
     (Pattern.compile("^(:)"), (txt: String, line: Integer, col: Integer) => new Token(ColumnToken, txt, line, col)) ::
     (Pattern.compile("^(==)"), (txt: String, line: Integer, col: Integer) => new Token(EqualToken, txt, line, col)) ::
     (Pattern.compile("^(>=)"), (txt: String, line: Integer, col: Integer) => new Token(GreaterEqualToken, txt, line, col)) ::
-    (Pattern.compile("^(>=)"), (txt: String, line: Integer, col: Integer) => new Token(LessEqualToken, txt, line, col)) ::
+    (Pattern.compile("^(<=)"), (txt: String, line: Integer, col: Integer) => new Token(LessEqualToken, txt, line, col)) ::
     (Pattern.compile("^(!=)"), (txt: String, line: Integer, col: Integer) => new Token(NotEqualToken, txt, line, col)) ::    
     (Pattern.compile("^(>)"), (txt: String, line: Integer, col: Integer) => new Token(GreaterToken, txt, line, col)) ::
     (Pattern.compile("^(<)"), (txt: String, line: Integer, col: Integer) => new Token(LessToken, txt, line, col)) ::        

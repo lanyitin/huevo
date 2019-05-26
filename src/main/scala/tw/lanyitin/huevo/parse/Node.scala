@@ -101,7 +101,7 @@ case class IdentifierExpression(token: Token, holder: ValueHolder)
                                      this.typ,
                                      this.token.line,
                                      this.token.col)
-  def typ:Type = holder.typ
+  def typ:Type = if (holder != null) holder.typ else AnyValue
 }
 
 trait LiteralExpression[T] extends ValueExpression {
