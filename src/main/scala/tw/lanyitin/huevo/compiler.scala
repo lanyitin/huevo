@@ -2,6 +2,7 @@ package tw.lanyitin.huevo
 
 import tw.lanyitin.huevo.sematic._
 import tw.lanyitin.huevo.parse._
+import tw.lanyitin.common.ast._
 import scala.util.Random
 
 case class Compiler() extends TreeVisitor[List[String]] {

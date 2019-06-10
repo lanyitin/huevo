@@ -1,15 +1,9 @@
 package tw.lanyitin.huevo.sematic
 import scala.util.{Try, Success, Failure}
 import tw.lanyitin.huevo.lex._
-import tw.lanyitin.huevo.lex.TokenType._
-
-trait ValueHolder {
-  def typ: Type
-}
-case class Parameter(token: Token, typ: Type, idx: Int) extends ValueHolder
-case class Variable(token: Token, typ: Type, idx: Int) extends ValueHolder
-case class FunctionDeclaration(token: Token, parameters: List[Parameter], typ: Type) extends ValueHolder
-
+import tw.lanyitin.common.ast.TokenType._
+import tw.lanyitin.common.ast.{Token, NullToken, TokenType}
+import tw.lanyitin.common.ast._
 
 trait Scope {
   def find(identifier: Token): Try[ValueHolder]

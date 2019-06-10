@@ -1,5 +1,7 @@
 package tw.lanyitin.huevo.lex
 
+import tw.lanyitin.common.ast.TokenType._
+import tw.lanyitin.common.ast.{Token, TokenType, NullToken}
 import java.util.regex.Pattern
 import scala.annotation.tailrec
 
@@ -11,7 +13,6 @@ object typeDef {
 case class ScannerState(position: Integer, col: Integer, line: Integer)
 
 abstract class Scanner(val content: String, val state: ScannerState) {
-  import TokenType._
   import typeDef._
   private[this] def _loop(scanner: Scanner, acc: List[Token], p: (Token) => Boolean): (Scanner, List[Token]) = {
     val (token, next_state) = scanner.nextToken
@@ -68,9 +69,7 @@ case class CommentModeScanner(override val content: String, override val state: 
 }
 
 case class NormalModeScanner(override val content: String, override val state: ScannerState) extends Scanner(content, state) {
-  import TokenType._
   import typeDef._
-
   def tokenizers: List[Tuple2[Pattern, TokenFn]] =
     (Pattern.compile("^(let)"), (txt: String, line: Integer, col: Integer) => new Token(LetToken, txt, line, col)) ::
     (Pattern.compile("^(def)"), (txt: String, line: Integer, col: Integer) => new Token(DefToken, txt, line, col)) ::

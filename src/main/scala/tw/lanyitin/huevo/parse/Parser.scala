@@ -1,11 +1,13 @@
 package tw.lanyitin.huevo.parse
 
+import tw.lanyitin.common.ast._
 
 import scala.annotation.tailrec
 import scala.util.{Try, Success, Failure}
 import scala.language.implicitConversions
 import tw.lanyitin.huevo.lex._
-import tw.lanyitin.huevo.lex.TokenType._
+import tw.lanyitin.common.ast.TokenType._
+import tw.lanyitin.common.ast.{Token, NullToken, TokenType}
 import tw.lanyitin.huevo.sematic._
 
 object Parser {

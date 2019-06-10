@@ -3,7 +3,8 @@ import java.nio.ByteBuffer
 import scala.annotation.tailrec
 import scala .collection.immutable.Map
 import java.io.PrintStream
-import scala.util.Try
+import scala.util.Try 
+
 case class VM(
   _instructions: List[String],
   data_stack: Stack[HObject]=ListStack(Nil),

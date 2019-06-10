@@ -1,5 +1,6 @@
 package tw.lanyitin.huevo
 
+import tw.lanyitin.common.ast.Expression
 import parse._
 import lex._
 import machine.VM

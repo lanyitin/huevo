@@ -10,11 +10,11 @@ lazy val root = (project in file(".")).
   settings(
     name := "huevo",
     scalaJSUseMainModuleInitializer := true,
-    scalaVersion := "2.12.7"
+    scalaVersion := "2.12.7",
+    isSnapshot := true
   )
 
-isSnapshot := true
-
+libraryDependencies += "tw.lanyitin" % "common-ast_2.12" % "0.1.0"
 libraryDependencies += "com.novocode" % "junit-interface" % "0.11" % "test"
 
 scalacOptions := Seq("-unchecked", "-deprecation", "-feature")
