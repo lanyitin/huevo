@@ -89,8 +89,6 @@ object Parser {
         Success((IdentifierExpression(t, variable), s))
       })
     }
-
-
   }
 
   def parse_expression(scanner: Scanner): Try[(Expression, Scanner)] = {
@@ -321,7 +319,7 @@ object Parser {
   def parse_arith_expression(scanner: Scanner): Try[(Expression, Scanner)] = {
     parse_arith_term(scanner).flatMap(r1 => {
       val (arith_term: Expression, scanner2: Scanner) = r1
-      val matcher = PlusToken or MinusToken or ModToken
+      val matcher = PlusToken or MinusToken
       matcher(scanner2)
         .flatMap(r2 => {
           val (token: List[Token], scanner3: Scanner) = r2
@@ -337,7 +335,7 @@ object Parser {
   def parse_arith_term(scanner: Scanner): Try[(Expression, Scanner)] = {
     parse_arith_factor(scanner).flatMap((r1) => {
       val (arith_factor: Expression, scanner2: Scanner) = r1
-      val matcher = ArithMultToken or ArithDivideToken
+      val matcher = ArithMultToken or ArithDivideToken or ModToken
       matcher(scanner2)
         .flatMap((r2) => {
           val (op_token, scanner3) = r2

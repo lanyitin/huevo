@@ -1,3 +1,5 @@
 target/
 .ensime*
 .antlr
+.bloop
+.metals
