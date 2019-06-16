@@ -107,7 +107,9 @@ object Parsers {
   def parse_variable_definition(scanner: Scanner): Either[List[ParseError], ParseResult[VariableDefinitionExpression]] = for {
     result1 <- LetToken.run(scanner);
     result2 <- expectTokenType(IdentifierToken, Variable(_, null, 0)).run(result1.state);
+
     result3 <- AssignToken.run(result2.state);
+
     result4 <- this.parse_expression(result3.state)
   } yield ParseResult(result4.state, VariableDefinitionExpression(result2.result, result4.result))
 
@@ -196,7 +198,9 @@ object Parsers {
 
   def parse_arith_factor(scanner: Scanner): Either[List[ParseError], ParseResult[Expression]] = {
     val numberExpr = ParseAction(this.parse_number_literal_expression)
+
     val booleanExr = ParseAction(this.parse_boolean_literal)
+
     val identifierOrFuncallCall = map(ParseAction(this.parse_identifier_expression) and (LParanToken guard ParseAction(this.parse_function_call_args) and RParanToken))(x => {
       x._2._1 match {
         case Left(()) => x._1
