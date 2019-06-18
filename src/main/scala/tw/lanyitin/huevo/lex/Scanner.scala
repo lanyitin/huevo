@@ -4,10 +4,10 @@ import tw.lanyitin.common.ast.TokenType._
 import tw.lanyitin.common.ast.{Token, TokenType, NullToken}
 import java.util.regex.Pattern
 import scala.annotation.tailrec
+import scala.collection.immutable.ListMap
 
 object typeDef {
-  type Tokenizer = Tuple2[Pattern, TokenFn]
-  type TokenFn = (String, Integer, Integer) => Token
+  type Tokenizer = ListMap[TokenType, Pattern]
 }
 
 case class ScannerState(position: Integer, col: Integer, line: Integer)
@@ -47,81 +47,38 @@ abstract class Scanner(val content: String, val state: ScannerState) {
     val fn = (_: Token) => {n-=1;n > 0}
     takeWhile(fn)
   }
-  def tokenizers: List[Tokenizer]
-  def nextToken: (Token, Scanner)
-}
 
-case class CommentModeScanner(override val content: String, override val state: ScannerState) extends Scanner(content, state) {
-  import typeDef._
-  import TokenType._
-  def tokenizers: List[Tuple2[Pattern, TokenFn]] =
-    (Pattern.compile(".*[^\\r\\n|\\n|\\r]"), (txt: String, line: Integer, col: Integer) => new Token(CommentBodyToken, txt, line, col)) ::
-    Nil
-  def nextToken: (Token, Scanner) = {
-    val matcher = tokenizers.head._1.matcher(content)
-    if (matcher.find()) {
-      val token = tokenizers.head._2(matcher.group(0), state.line, state.col)
-      (token, NormalModeScanner(content, state.copy(position=state.position + token.txt.size,col=state.col+token.txt.size)))
-    } else {
-      (new Token(UnexpectedToken, "<UnexpectedToken>"), this)
-    }
-  }
-}
-
-case class NormalModeScanner(override val content: String, override val state: ScannerState) extends Scanner(content, state) {
-  import typeDef._
-  def tokenizers: List[Tuple2[Pattern, TokenFn]] =
-    (Pattern.compile("^(let)"), (txt: String, line: Integer, col: Integer) => new Token(LetToken, txt, line, col)) ::
-    (Pattern.compile("^(def)"), (txt: String, line: Integer, col: Integer) => new Token(DefToken, txt, line, col)) ::
-    (Pattern.compile("^(if)"), (txt: String, line: Integer, col: Integer) => new Token(IfToken, txt, line, col)) ::
-    (Pattern.compile("^(else)"), (txt: String, line: Integer, col: Integer) => new Token(ElseToken, txt, line, col)) ::
-    (Pattern.compile("^(true|false)"), (txt: String, line: Integer, col: Integer) => new Token(BooleanConstantToken, txt, line, col)) ::   
-    (Pattern.compile("^(\\r\\n|\\n|\\r)"), (txt: String, line: Integer, col: Integer) => new Token(NewLineToken, txt, line, col)) ::
-    (Pattern.compile("^([\\t ]+)"), (txt: String, line: Integer, col: Integer) => new Token(SpaceToken, txt, line, col)) ::
-    (Pattern.compile("^(\\d+(\\.\\d+)?)"), (txt: String, line: Integer, col: Integer) => new Token(NumberToken, txt, line, col)) ::
-    (Pattern.compile("^(,)"), (txt: String, line: Integer, col: Integer) => new Token(CommaToken, txt, line, col)) ::
-    (Pattern.compile("^(:)"), (txt: String, line: Integer, col: Integer) => new Token(ColumnToken, txt, line, col)) ::
-    (Pattern.compile("^(==)"), (txt: String, line: Integer, col: Integer) => new Token(EqualToken, txt, line, col)) ::
-    (Pattern.compile("^(>=)"), (txt: String, line: Integer, col: Integer) => new Token(GreaterEqualToken, txt, line, col)) ::
-    (Pattern.compile("^(<=)"), (txt: String, line: Integer, col: Integer) => new Token(LessEqualToken, txt, line, col)) ::
-    (Pattern.compile("^(!=)"), (txt: String, line: Integer, col: Integer) => new Token(NotEqualToken, txt, line, col)) ::    
-    (Pattern.compile("^(>)"), (txt: String, line: Integer, col: Integer) => new Token(GreaterToken, txt, line, col)) ::
-    (Pattern.compile("^(<)"), (txt: String, line: Integer, col: Integer) => new Token(LessToken, txt, line, col)) ::        
-    (Pattern.compile("^(and)"), (txt: String, line: Integer, col: Integer) => new Token(BooleanAndToken, txt, line, col)) ::
-    (Pattern.compile("^(or)"), (txt: String, line: Integer, col: Integer) => new Token(BooleanOrToken, txt, line, col)) ::
-    (Pattern.compile("^(=)"), (txt: String, line: Integer, col: Integer) => new Token(AssignToken, txt, line, col)) ::
-    (Pattern.compile("^(\\*)"), (txt: String, line: Integer, col: Integer) => new Token(ArithMultToken, txt, line, col)) ::
-    (Pattern.compile("^(/)"), (txt: String, line: Integer, col: Integer) => new Token(ArithDivideToken, txt, line, col)) ::
-    (Pattern.compile("^(\\+)"), (txt: String, line: Integer, col: Integer) => new Token(PlusToken, txt, line, col)) ::
-    (Pattern.compile("^(%)"), (txt: String, line: Integer, col: Integer) => new Token(ModToken, txt, line, col)) ::
-    (Pattern.compile("^(-)"), (txt: String, line: Integer, col: Integer) => new Token(MinusToken, txt, line, col)) ::
-    (Pattern.compile("^(\\{)"), (txt: String, line: Integer, col: Integer) => new Token(LCurlyBracket, txt, line, col)) ::
-    (Pattern.compile("^(\\})"), (txt: String, line: Integer, col: Integer) => new Token(RCurlyBracket, txt, line, col)) ::
-    (Pattern.compile("^(\\()"), (txt: String, line: Integer, col: Integer) => new Token(LParanToken, txt, line, col)) ::
-    (Pattern.compile("^(\\))"), (txt: String, line: Integer, col: Integer) => new Token(RParanToken, txt, line, col)) ::
-    (Pattern.compile("^(#)"), (txt: String, line: Integer, col: Integer) => new Token(CommentHeadToken, txt, line, col)) ::
-    (Pattern.compile("^([a-zA-Z][a-zA-Z0-9]*)"), (txt: String, line: Integer, col: Integer) => new Token(IdentifierToken, txt, line, col)) ::
-    Nil
-  def nextToken: (Token, Scanner) = {
-    // TODO: rewrite loop with built-in operation like collectFirst
-    @tailrec
-    def loop(tokenizer: List[Tokenizer]): Token = {
-      if (tokenizer.isEmpty) {
-        new Token(UnexpectedToken, "<UnexpectedToken>")
-      } else {
-        val matcher = tokenizer.head._1.matcher(content.substring(state.position))
-        if (matcher.find()) {
-          tokenizer.head._2(matcher.group(0), state.line, state.col)
-        } else {
-          loop(tokenizer.tail)
-        }
+  private def _nextToken: Option[Token] = {
+    tokenizer.collectFirst(new PartialFunction[(TokenType, Pattern), Token] {
+      def isDefinedAt(x: (TokenType.TokenType, Pattern)): Boolean = x._2.matcher(content).find()
+      def apply(v1: (TokenType.TokenType, Pattern)): Token = {
+        Token(v1._1, v1._2.matcher(content).group(0), state.line, state.col)
       }
-    }
-    
+    })
+  }
+
+  def nextToken: (Token, Scanner) = {
     if (state.position >= content.size) {
       (new Token(EOFToken, "<EOF>", state.line, state.col), this)
     } else {
-      val result = loop(tokenizers)
+      val option: Option[Token] = this._nextToken
+      option match {
+        case None => (new Token(UnexpectedToken, "<UnexpectedToken>"), this)
+        case Some(token) => this.nextState(token)
+      }
+    }
+  }
+  def nextState(token: Token): (Token, Scanner)
+  def tokenizer: Tokenizer
+  
+}
+
+sealed case class ScannerBuilder(val initTokenizer: ListMap[TokenType, Pattern]) {
+  def normalMode(content: String, state: ScannerState): Scanner = new Scanner(content, state) {
+    import typeDef._
+    def tokenizer = initTokenizer.filter(p => p._1 != CommentBodyToken)
+
+    def nextState(result: Token): (Token, Scanner) = {
       result.tokenType match {
         case EqualToken|GreaterEqualToken|LessEqualToken|GreaterToken|LessToken|
              NotEqualToken|BooleanAndToken|BooleanOrToken|
@@ -129,22 +86,59 @@ case class NormalModeScanner(override val content: String, override val state: S
              IdentifierToken|NumberToken|BooleanConstantToken|StringToken|LParanToken|RParanToken|
              LCurlyBracket|RCurlyBracket|ColumnToken|CommaToken|DefToken|IfToken|ElseToken|
              AssignToken|LetToken|ModToken
-         => (result, NormalModeScanner(content, state.copy(position=state.position + result.txt.size,col=state.col+result.txt.size)))
-        case SpaceToken => NormalModeScanner(content, state.copy(position=state.position + result.txt.size,col=state.col+result.txt.size)).nextToken
-        case NewLineToken => NormalModeScanner(content, state.copy(position=state.position + result.txt.size, col=0, line=state.line+1)).nextToken
-        case CommentHeadToken => CommentModeScanner(content, state.copy(position=state.position + result.txt.size,col=state.col+result.txt.size)).nextToken
+         => (result, normalMode(content, state.copy(position=state.position + result.txt.size,col=state.col+result.txt.size)))
+        case SpaceToken => normalMode(content, state.copy(position=state.position + result.txt.size,col=state.col+result.txt.size)).nextToken
+        case NewLineToken => normalMode(content, state.copy(position=state.position + result.txt.size, col=0, line=state.line+1)).nextToken
+        case CommentHeadToken => commentMode(content, state.copy(position=state.position + result.txt.size,col=state.col+result.txt.size)).nextToken
         case EOFToken | UnexpectedToken => (result, this)
       }
     }
   }
+  def commentMode(content: String, state: ScannerState): Scanner = new Scanner(content, state) {
+    import typeDef._
+    def tokenizer: Tokenizer = initTokenizer.filter(p => p._1 == CommentBodyToken)
+    def nextState(token: Token): (Token, Scanner) = {
+      (token, normalMode(content, state.copy(position=state.position + token.txt.size,col=state.col+token.txt.size)))
+    }
+  }
+  // def stringMode()
 }
 
 
 object Scanner {
-  // keep tracking of how many token be scanned
-  var tokenId = 0
-
   def apply(txt: String): Scanner = {
-    NormalModeScanner(txt, ScannerState(0, 0, 0))
+    ScannerBuilder(ListMap(
+      LetToken -> Pattern.compile("^(let)"),
+      DefToken -> Pattern.compile("^(def)"),
+      IfToken -> Pattern.compile("^(if)"),
+      ElseToken -> Pattern.compile("^(else)"),
+      BooleanConstantToken -> Pattern.compile("^(true|false)"),   
+      NewLineToken -> Pattern.compile("^(\\r\\n|\\n|\\r)"),
+      SpaceToken -> Pattern.compile("^([\\t ]+)"),
+      NumberToken -> Pattern.compile("^(\\d+(\\.\\d+)?)"),
+      CommaToken -> Pattern.compile("^(,)"),
+      ColumnToken -> Pattern.compile("^(:)"),
+      EqualToken -> Pattern.compile("^(==)"),
+      GreaterEqualToken -> Pattern.compile("^(>=)"),
+      LessEqualToken -> Pattern.compile("^(<=)"),
+      NotEqualToken -> Pattern.compile("^(!=)"),    
+      GreaterToken -> Pattern.compile("^(>)"),
+      LessToken -> Pattern.compile("^(<)"),        
+      BooleanAndToken -> Pattern.compile("^(and)"),
+      BooleanOrToken -> Pattern.compile("^(or)"),
+      AssignToken -> Pattern.compile("^(=)"),
+      ArithMultToken -> Pattern.compile("^(\\*)"),
+      ArithDivideToken -> Pattern.compile("^(/)"),
+      PlusToken -> Pattern.compile("^(\\+)"),
+      ModToken -> Pattern.compile("^(%)"),
+      MinusToken -> Pattern.compile("^(-)"),
+      LCurlyBracket -> Pattern.compile("^(\\{)"),
+      RCurlyBracket -> Pattern.compile("^(\\})"),
+      LParanToken -> Pattern.compile("^(\\()"),
+      RParanToken -> Pattern.compile("^(\\))"),
+      CommentHeadToken -> Pattern.compile("^(#)"),
+      IdentifierToken -> Pattern.compile("^([a-zA-Z][a-zA-Z0-9]*)"),
+      CommentBodyToken -> Pattern.compile(".*[^\\r\\n|\\n|\\r]")
+    )).normalMode(txt, ScannerState(0, 0, 0))
   }
 }
