@@ -12,11 +12,13 @@ case class ParseAction[+R](run: Scanner => Either[List[ParseError], ParseResult[
 
   def map[B](f: R => B) = ParseActionOps.map(this)(f)
 
+  def andThen[B](p2: ParseAction[B]): ParseAction[B] = flatMap(_ => p2)
+
   def and[B] (p2: ParseAction[B]) = ParseActionOps.product(this)(p2)
 
-  def or[B](p2: ParseAction[B]) = ParseActionOps.or(this)(p2)
+  def either[B](p2: ParseAction[B]) = ParseActionOps.either(this)(p2)
 
-  def orM[B <: C, C >: R](p2: ParseAction[B]) = ParseAction[C](state0 => {
+  def or[B <: C, C >: R](p2: ParseAction[B]) = ParseAction[C](state0 => {
     this.run(state0) match {
       case Right(result) => Right(ParseResult(result.state, result.result))
       case Left(e1) => p2.run(state0) match {
@@ -75,7 +77,7 @@ object ParseActionOps {
     resultRest <- many(p).run(result1.state)
   } yield ParseResult(resultRest.state, result1.result :: resultRest.result))
 
-  def or[R, B](p1: ParseAction[R])(p2: ParseAction[B]): ParseAction[Either[R, B]] = ParseAction[Either[R, B]](state0 => {
+  def either[R, B](p1: ParseAction[R])(p2: ParseAction[B]): ParseAction[Either[R, B]] = ParseAction[Either[R, B]](state0 => {
     p1.run(state0) match {
       case Right(result) => Right(ParseResult(result.state, Left(result.result)))
       case Left(e1) => p2.run(state0) match {
@@ -85,7 +87,7 @@ object ParseActionOps {
     }
   })
 
-  def orM[R <:C, B <: C, C](p1: ParseAction[R])(p2: ParseAction[B]): ParseAction[C] = ParseAction[C](state0 => {
+  def or[R <:C, B <: C, C](p1: ParseAction[R])(p2: ParseAction[B]): ParseAction[C] = ParseAction[C](state0 => {
     p1.run(state0) match {
       case Right(result) => Right(ParseResult(result.state, result.result))
       case Left(e1) => p2.run(state0) match {
