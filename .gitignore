@@ -3,3 +3,5 @@ target/
 .antlr
 .bloop
 .metals
+.env
+.idea/

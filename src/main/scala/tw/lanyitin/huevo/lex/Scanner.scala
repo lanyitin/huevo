@@ -2,7 +2,7 @@ package tw.lanyitin.huevo.lex
 
 import tw.lanyitin.common.ast.TokenType._
 import tw.lanyitin.common.ast.{Token, TokenType, NullToken}
-import java.util.regex.Pattern
+import java.util.regex.{Pattern, Matcher}
 import scala.annotation.tailrec
 import scala.collection.immutable.ListMap
 
@@ -50,9 +50,13 @@ abstract class Scanner(val content: String, val state: ScannerState) {
 
   private def _nextToken: Option[Token] = {
     tokenizer.collectFirst(new PartialFunction[(TokenType, Pattern), Token] {
-      def isDefinedAt(x: (TokenType.TokenType, Pattern)): Boolean = x._2.matcher(content).find()
+      var matcher: Matcher = null
+      def isDefinedAt(x: (TokenType.TokenType, Pattern)): Boolean = {
+        matcher = x._2.matcher(content.substring(state.position))
+        content.size > 0 && matcher.find()
+      }
       def apply(v1: (TokenType.TokenType, Pattern)): Token = {
-        Token(v1._1, v1._2.matcher(content).group(0), state.line, state.col)
+        Token(v1._1, matcher.group(), state.line, state.col)
       }
     })
   }
@@ -63,7 +67,7 @@ abstract class Scanner(val content: String, val state: ScannerState) {
     } else {
       val option: Option[Token] = this._nextToken
       option match {
-        case None => (new Token(UnexpectedToken, "<UnexpectedToken>"), this)
+        case None => (new Token(UnexpectedToken, "<UnexpectedToken>" + state.position), this)
         case Some(token) => this.nextState(token)
       }
     }
@@ -85,7 +89,7 @@ sealed case class ScannerBuilder(val initTokenizer: ListMap[TokenType, Pattern])
              ArithDivideToken|ArithMultToken|PlusToken|MinusToken|
              IdentifierToken|NumberToken|BooleanConstantToken|StringToken|LParanToken|RParanToken|
              LCurlyBracket|RCurlyBracket|ColumnToken|CommaToken|DefToken|IfToken|ElseToken|
-             AssignToken|LetToken|ModToken
+             AssignToken|LetToken|ModToken|StringToken|PropertyAccessToken
          => (result, normalMode(content, state.copy(position=state.position + result.txt.size,col=state.col+result.txt.size)))
         case SpaceToken => normalMode(content, state.copy(position=state.position + result.txt.size,col=state.col+result.txt.size)).nextToken
         case NewLineToken => normalMode(content, state.copy(position=state.position + result.txt.size, col=0, line=state.line+1)).nextToken
@@ -101,13 +105,13 @@ sealed case class ScannerBuilder(val initTokenizer: ListMap[TokenType, Pattern])
       (token, normalMode(content, state.copy(position=state.position + token.txt.size,col=state.col+token.txt.size)))
     }
   }
-  // def stringMode()
 }
 
 
 object Scanner {
   def apply(txt: String): Scanner = {
     ScannerBuilder(ListMap(
+      PropertyAccessToken -> Pattern.compile("^(\\.)"),
       LetToken -> Pattern.compile("^(let)"),
       DefToken -> Pattern.compile("^(def)"),
       IfToken -> Pattern.compile("^(if)"),
@@ -137,8 +141,9 @@ object Scanner {
       LParanToken -> Pattern.compile("^(\\()"),
       RParanToken -> Pattern.compile("^(\\))"),
       CommentHeadToken -> Pattern.compile("^(#)"),
-      IdentifierToken -> Pattern.compile("^([a-zA-Z][a-zA-Z0-9]*)"),
-      CommentBodyToken -> Pattern.compile(".*[^\\r\\n|\\n|\\r]")
+      IdentifierToken -> Pattern.compile("^([a-zA-Z][a-zA-Z0-9_]*)"),
+      CommentBodyToken -> Pattern.compile(".*[^\\r\\n|\\n|\\r]"),
+      StringToken -> Pattern.compile("^\"((\\\"|[^\"\\n])+)\"")
     )).normalMode(txt, ScannerState(0, 0, 0))
   }
 }
