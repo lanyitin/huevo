@@ -41,17 +41,7 @@ object Parsers {
   import Ops._
 
   def parse_program(scanner: Scanner): Either[List[ParseError], ParseResult[ExprsBlock]] =
-    this.parse_expressions_block(scanner)
-
-  def parse_expressions_block(scanner: Scanner): Either[List[ParseError], ParseResult[ExprsBlock]] = {
-    val action = ParseAction(this.parse_expression)
-    val case1 = wrap2(commit(oneOrMore(action)))(LCurlyBracket, RCurlyBracket).map(x => ExprsBlock(x._2))
-    val case2 = action.map(x => ExprsBlock(List(x)))
-    (case1 or case2).run(scanner)
-  }
-
-  def parse_identifier_expression(scanner: Scanner): Either[List[ParseError], ParseResult[IdentifierExpression]] =
-    expectTokenType(IdentifierToken, IdentifierExpression(_, null)).run(scanner)
+    oneOrMore(ParseAction(parse_expression)).map(ExprsBlock(_)).run(scanner)
 
 
   def parse_expression(scanner: Scanner): Either[List[ParseError], ParseResult[Expression]] = {
@@ -71,6 +61,16 @@ object Parsers {
       (ParseAction(this.parse_boolean_expression) or ParseAction(this.parse_arith_expression)).run(scanner)
     }
   }
+
+  def parse_expressions_block(scanner: Scanner): Either[List[ParseError], ParseResult[Expression]] = {
+    val action = ParseAction(this.parse_expression)
+    val case1 = wrap2(commit(oneOrMore(action)))(LCurlyBracket, RCurlyBracket).map(x => ExprsBlock(x._2))
+    val case2 = action
+    (case1 or case2).run(scanner)
+  }
+
+  def parse_identifier_expression(scanner: Scanner): Either[List[ParseError], ParseResult[IdentifierExpression]] =
+    expectTokenType(IdentifierToken, IdentifierExpression(_, null)).run(scanner)
 
   def parse_variable_definition(scanner: Scanner): Either[List[ParseError], ParseResult[VariableDefinitionExpression]] = for {
     result1 <- LetToken.run(scanner)
@@ -103,12 +103,12 @@ object Parsers {
 
   def parse_if_expression(scanner: Scanner): Either[List[ParseError], ParseResult[IfExpression]] = for {
     result1 <- (IfToken and LParanToken and ParseAction(this.parse_boolean_expression) and RParanToken).run(scanner)
-    result2 <- (LCurlyBracket and ParseAction(parse_expression) and RCurlyBracket).run(result1.state)
-    result3 <- (ElseToken guard (LCurlyBracket and ParseAction(parse_expression) and RCurlyBracket)).run(result2.state) map (either => either.result match {
+    result2 <- ParseAction(parse_expressions_block).run(result1.state)
+    result3 <- (ElseToken guard ParseAction(parse_expressions_block)).run(result2.state) map (either => either.result match {
       case Left(_) => (result2.state, ExprsBlock(Nil))
-      case Right(result) => (either.state, result._2._1._2)
+      case Right(result) => (either.state, result._2)
     })
-  } yield ParseResult(result3._1, IfExpression(result1.result._1._2, result2.result._1._2, result3._2))
+  } yield ParseResult(result3._1, IfExpression(result1.result._1._2, result2.result, result3._2))
 
   def parse_boolean_expression(scanner: Scanner): Either[List[ParseError], ParseResult[Expression]] = {
     for {

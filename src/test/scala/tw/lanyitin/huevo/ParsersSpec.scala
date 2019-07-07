@@ -460,8 +460,8 @@ class ParsersSpec extends FlatSpec with Matchers {
         val result = Parsers.parse_expression(scanner)
         if (result.isLeft) {
             fail(result.left.get.toString)
-        } else {
-            //  println(result.get._1.visualize)
+        } else if (result.right.get.state.nextToken._1.tokenType != EOFToken) {
+            fail(s"${result.right.get.result.toString} ${result.right.get.state.nextToken._1.toString}")
         }
     }
 
@@ -475,8 +475,8 @@ class ParsersSpec extends FlatSpec with Matchers {
         val result = Parsers.parse_expression(scanner)
         if (result.isLeft) {
             fail(result.left.get.toString)
-        } else {
-            //  println(result.get._1.visualize)
+        } else if (result.right.get.state.nextToken._1.tokenType != EOFToken) {
+            fail(s"${result.right.get.result.toString} ${result.right.get.state.nextToken._1.toString}")
         }
     }
 
@@ -489,9 +489,9 @@ class ParsersSpec extends FlatSpec with Matchers {
          val result = Parsers.parse_expression(scanner)
          if (result.isLeft) {
              fail(result.left.get.toString)
-         } else {
-             //  println(result.get._1.visualize)
-         }
+            } else if (result.right.get.state.nextToken._1.tokenType != EOFToken) {
+                fail(s"${result.right.get.result.toString} ${result.right.get.state.nextToken._1.toString}")
+            }
      }
 
      "A Parser" should "be able to parse if expression without else" in {
@@ -502,9 +502,9 @@ class ParsersSpec extends FlatSpec with Matchers {
          val result = Parsers.parse_expression(scanner)
          if (result.isLeft) {
              fail(result.left.get.toString)
-         } else {
-             //  println(result.get._1.visualize)
-         }
+            } else if (result.right.get.state.nextToken._1.tokenType != EOFToken) {
+                fail(s"${result.right.get.result.toString} ${result.right.get.state.nextToken._1.toString}")
+            }
      }
 
      "A Parser" should "be able to parse if else" in {
@@ -517,12 +517,12 @@ class ParsersSpec extends FlatSpec with Matchers {
                          |}
                        """.stripMargin('|').trim()
          val scanner = Scanner(content)
-         val result = Parsers.parse_expression(scanner)
+         val result = Parsers.parse_program(scanner)
          if (result.isLeft) {
              fail(result.left.get.toString)
-         } else {
-             //  println(result.get._1.visualize)
-         }
+            } else if (result.right.get.state.nextToken._1.tokenType != EOFToken) {
+                fail(s"${result.right.get.result.toString}\n${result.right.get.state.nextToken._1.toString}\n${result.right.get.state.toString}")
+            }
      }
 
      "A Parser" should "be able to parse if else if" in {
@@ -539,11 +539,24 @@ class ParsersSpec extends FlatSpec with Matchers {
                          |}
                        """.stripMargin('|').trim()
          val scanner = Scanner(content)
-         val result = Parsers.parse_expression(scanner)
+         val result = Parsers.parse_program(scanner)
          if (result.isLeft) {
              fail(result.left.get.toString)
-         } else {
-             //  println(result.get._1.visualize)
-         }
+        } else if (result.right.get.state.nextToken._1.tokenType != EOFToken) {
+            fail(s"${result.right.get.result.toString}\n${result.right.get.state.nextToken._1.toString}\n${result.right.get.state.state.toString}")
+        }
      }
+
+     "Parse Boolean Expression" should "be able to parse property call expression" in {
+        val content = """
+                        |NB01.M_OPT==Y and MTK1_1.OPT_STUS==Y
+                      """.stripMargin('|').trim()
+        val scanner = Scanner(content)
+        val result = Parsers.parse_expression(scanner)
+        if (result.isLeft) {
+            fail(result.left.get.toString)
+        } else if (result.right.get.state.nextToken._1.tokenType != EOFToken) {
+            fail(s"${result.right.get.result.toString} ${result.right.get.state.nextToken._1.toString}")
+        }
+    }
 }
