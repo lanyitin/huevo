@@ -5,9 +5,11 @@ import tw.lanyitin.huevo.lex.Scanner
 import tw.lanyitin.common.ast._
 import tw.lanyitin.common.ast.TokenType._
 import tw.lanyitin.common.parser.ParseActionOps._
+
 import scala.language.implicitConversions
 import tw.lanyitin.huevo.parse.Ops._
 class ParsersSpec extends FlatSpec with Matchers {
+
     "Or Combinator" should "return second result if the first failed" in {
         or(BooleanAndToken)(BooleanOrToken).run(Scanner("or")) match {
             case Left(errors) => fail(errors.mkString("\n"))
@@ -17,7 +19,7 @@ class ParsersSpec extends FlatSpec with Matchers {
         }
     }
 
-    "Or Combinator" should "return first result if the first successed" in {
+    "Or Combinator" should "return first result if the first is succeed" in {
         or(BooleanAndToken)(BooleanOrToken).run(Scanner("and")) match {
             case Left(errors) => fail(errors.mkString("\n"))
             case Right(result) => if (result.result.txt != "and" || result.state.nextToken._1.tokenType != EOFToken) {
@@ -124,7 +126,7 @@ class ParsersSpec extends FlatSpec with Matchers {
         }
     }
 
-    "Parse Boolean Expression" should "able recognize and operation with arithmatic expression" in {
+    "Parse Boolean Expression" should "able recognize and operation with arithmetic expression" in {
         val content = "a1 > a2 and a3 < a4"
         val scanner = Scanner(content)
         Parsers.parse_boolean_expression(scanner) match {
@@ -138,7 +140,7 @@ class ParsersSpec extends FlatSpec with Matchers {
         }
     }
 
-    "Parse Boolean Expression" should "able recognize and operation wrapped arithmatic expression" in {
+    "Parse Boolean Expression" should "able recognize and operation wrapped arithmetic expression" in {
         val content = "(a1 > a2) and (a3 < a4)"
         val scanner = Scanner(content)
         Parsers.parse_boolean_expression(scanner) match {
@@ -183,10 +185,24 @@ class ParsersSpec extends FlatSpec with Matchers {
         }
     }
 
-    "Parse Aith Expression" should "able recognize integer literal expression" in {
+    "Parse Boolean Expression" should "able to recognize complex expression" in {
+        val content = "NB01.MORE_OTP==Y and MTK1_1.VER==02"
+        val scanner = Scanner(content)
+        Parsers.parse_boolean_expression(scanner) match {
+            case Left(errors) => fail(errors.mkString("\n"))
+            case Right(result) => result.result match {
+                case OperationCallExpression(token, _, _) => if (token.txt != "and" || result.state.nextToken._1.tokenType != EOFToken) {
+                    fail(result.toString)
+                }
+                case e => fail(e.toString)
+            }
+        }
+    }
+
+    "Parse Arithmetic Expression" should "able recognize integer literal expression" in {
         val content = "1"
         val scanner = Scanner(content)
-        Parsers.parse_arith_expression(scanner) match {
+        Parsers.parse_arithmetic_expression(scanner) match {
             case Left(errors) => fail(errors.mkString("\n"))
             case Right(result) => result.result match {
                 case IntegerLiteralExpression(_, theValue) => if (theValue != 1 || result.state.nextToken._1.tokenType != EOFToken) {
@@ -197,10 +213,10 @@ class ParsersSpec extends FlatSpec with Matchers {
         }
     }
 
-    "Parse Aith Expression" should "able recognize float literal expression" in {
+    "Parse Arithmetic Expression" should "able recognize float literal expression" in {
         val content = "1.0"
         val scanner = Scanner(content)
-        Parsers.parse_arith_expression(scanner) match {
+        Parsers.parse_arithmetic_expression(scanner) match {
             case Left(errors) => fail(errors.mkString("\n"))
             case Right(result) => result.result match {
                 case FloatLiteralExpression(_, theValue) => if (theValue != 1.0 || result.state.nextToken._1.tokenType != EOFToken) {
@@ -211,10 +227,10 @@ class ParsersSpec extends FlatSpec with Matchers {
         }
     }
 
-    "Parse Aith Expression" should "able recognize add operator" in {
+    "Parse Arithmetic Expression" should "able recognize add operator" in {
         val content = "1.0 + 1"
         val scanner = Scanner(content)
-        Parsers.parse_arith_expression(scanner) match {
+        Parsers.parse_arithmetic_expression(scanner) match {
             case Left(errors) => fail(errors.mkString("\n"))
             case Right(result) => result.result match {
                 case OperationCallExpression(token, _, _) => if (token.txt != "+" || result.state.nextToken._1.tokenType != EOFToken) {
@@ -225,10 +241,10 @@ class ParsersSpec extends FlatSpec with Matchers {
         }
     }
 
-    "Parse Aith Expression" should "able recognize minus operator" in {
+    "Parse Arithmetic Expression" should "able recognize minus operator" in {
         val content = "1.0 - 1"
         val scanner = Scanner(content)
-        Parsers.parse_arith_expression(scanner) match {
+        Parsers.parse_arithmetic_expression(scanner) match {
             case Left(errors) => fail(errors.mkString("\n"))
             case Right(result) => result.result match {
                 case OperationCallExpression(token, _, _) => if (token.txt != "-" || result.state.nextToken._1.tokenType != EOFToken) {
@@ -239,10 +255,10 @@ class ParsersSpec extends FlatSpec with Matchers {
         }
     }
 
-    "Parse Aith Expression" should "able recognize division operator" in {
+    "Parse Arithmetic Expression" should "able recognize division operator" in {
         val content = "1.0 / 1"
         val scanner = Scanner(content)
-        Parsers.parse_arith_expression(scanner) match {
+        Parsers.parse_arithmetic_expression(scanner) match {
             case Left(errors) => fail(errors.mkString("\n"))
             case Right(result) => result.result match {
                 case OperationCallExpression(token, _, _) => if (token.txt != "/" || result.state.nextToken._1.tokenType != EOFToken) {
@@ -253,10 +269,10 @@ class ParsersSpec extends FlatSpec with Matchers {
         }
     }
 
-    "Parse Aith Expression" should "able recognize multiply operator" in {
+    "Parse Arithmetic Expression" should "able recognize multiply operator" in {
         val content = "1.0 * 1"
         val scanner = Scanner(content)
-        Parsers.parse_arith_expression(scanner) match {
+        Parsers.parse_arithmetic_expression(scanner) match {
             case Left(errors) => fail(errors.mkString("\n"))
             case Right(result) => result.result match {
                 case OperationCallExpression(token, _, _) => if (token.txt != "*" || result.state.nextToken._1.tokenType != EOFToken) {
@@ -267,10 +283,10 @@ class ParsersSpec extends FlatSpec with Matchers {
         }
     }
 
-    "Parse Aith Expression" should "able recognize multiply operator with parathezied operands" in {
+    "Parse Arithmetic Expression" should "able recognize multiply operator with parathezied operands" in {
         val content = "(1.0 + 1) * (1 - 1)"
         val scanner = Scanner(content)
-        Parsers.parse_arith_expression(scanner) match {
+        Parsers.parse_arithmetic_expression(scanner) match {
             case Left(errors) => fail(errors.mkString("\n"))
             case Right(result) => result.result match {
                 case OperationCallExpression(token, _, _) => if (token.txt != "*" || result.state.nextToken._1.tokenType != EOFToken) {
@@ -281,10 +297,10 @@ class ParsersSpec extends FlatSpec with Matchers {
         }
     }
 
-    "Parse Aith Expression" should "able recognize identifier" in {
+    "Parse Arithmetic Expression" should "able recognize identifier" in {
         val content = "a1"
         val scanner = Scanner(content)
-        Parsers.parse_arith_expression(scanner) match {
+        Parsers.parse_arithmetic_expression(scanner) match {
             case Left(errors) => fail(errors.mkString("\n"))
             case Right(result) => result.result match {
                 case IdentifierExpression(token, _) => if (token.txt != "a1" || result.state.nextToken._1.tokenType != EOFToken) {
@@ -295,11 +311,11 @@ class ParsersSpec extends FlatSpec with Matchers {
         }
     }
 
-    "Parse Aith Expression" should "able recognize add operation with one number literal and on identifier as operand" in {
+    "Parse Arithmetic Expression" should "able recognize add operation with one number literal and on identifier as operand" in {
         {
             val content = "a1 + 1"
             val scanner = Scanner(content)
-            Parsers.parse_arith_expression(scanner) match {
+            Parsers.parse_arithmetic_expression(scanner) match {
                 case Left(errors) => fail(errors.mkString("\n"))
                 case Right(result) => result.result match {
                     case OperationCallExpression(token, _, _) => if (token.txt != "+" || result.state.nextToken._1.tokenType != EOFToken) {
@@ -312,7 +328,7 @@ class ParsersSpec extends FlatSpec with Matchers {
         {
             val content = "1 + a1"
             val scanner = Scanner(content)
-            Parsers.parse_arith_expression(scanner) match {
+            Parsers.parse_arithmetic_expression(scanner) match {
                 case Left(errors) => fail(errors.mkString("\n"))
                 case Right(result) => result.result match {
                     case OperationCallExpression(token, _, _) => if (token.txt != "+" || result.state.nextToken._1.tokenType != EOFToken) {
@@ -324,11 +340,11 @@ class ParsersSpec extends FlatSpec with Matchers {
         }
     }
 
-    "Parse Aith Expression" should "able recognize multiply operation with one number literal and on identifier as operand" in {
+    "Parse Arithmetic Expression" should "able recognize multiply operation with one number literal and on identifier as operand" in {
         {
             val content = "a1 * 1"
             val scanner = Scanner(content)
-            Parsers.parse_arith_expression(scanner) match {
+            Parsers.parse_arithmetic_expression(scanner) match {
                 case Left(errors) => fail(errors.mkString("\n"))
                 case Right(result) => result.result match {
                     case OperationCallExpression(token, _, _) => if (token.txt != "*" || result.state.nextToken._1.tokenType != EOFToken) {
@@ -341,7 +357,7 @@ class ParsersSpec extends FlatSpec with Matchers {
         {
             val content = "1 * a1"
             val scanner = Scanner(content)
-            Parsers.parse_arith_expression(scanner) match {
+            Parsers.parse_arithmetic_expression(scanner) match {
                 case Left(errors) => fail(errors.mkString("\n"))
                 case Right(result) => result.result match {
                     case OperationCallExpression(token, _, _) => if (token.txt != "*" || result.state.nextToken._1.tokenType != EOFToken) {
@@ -353,10 +369,10 @@ class ParsersSpec extends FlatSpec with Matchers {
         }
     }
 
-    "Parse Aith Expression" should "able recognize add operation with one function call as operand" in {
+    "Parse Arithmetic Expression" should "able recognize add operation with one function call as operand" in {
         val content = " 1 + func1(a1, a2, a3)"
         val scanner = Scanner(content)
-        Parsers.parse_arith_expression(scanner) match {
+        Parsers.parse_arithmetic_expression(scanner) match {
             case Left(errors) => fail(errors.mkString("\n"))
             case Right(result) => result.result match {
                 case OperationCallExpression(token, _, _) => if (token.txt != "+" || result.state.nextToken._1.tokenType != EOFToken) {
@@ -409,22 +425,8 @@ class ParsersSpec extends FlatSpec with Matchers {
         }
     }
 
-    "Parse Boolean Expression" should "able to recognize complex expression" in {
-        val content = "NB01.MORE_OTP==Y and MTK1_1.VER==02"
-        val scanner = Scanner(content)
-        Parsers.parse_boolean_expression(scanner) match {
-            case Left(errors) => fail(errors.mkString("\n"))
-            case Right(result) => result.result match {
-                case OperationCallExpression(token, _, _) => if (token.txt != "and" || result.state.nextToken._1.tokenType != EOFToken) {
-                    fail(result.toString)
-                }
-                case e => fail(e.toString)
-            }
-        }
-    }
 
-
-    "Parser" should "able to recognize identifier expression" in {
+    "A Parser" should "able to recognize identifier expression" in {
         val content = "NB01"
         val scanner = Scanner(content)
         Parsers.parse_expression(scanner) match {
@@ -438,7 +440,7 @@ class ParsersSpec extends FlatSpec with Matchers {
         }
     }
 
-    "Parser" should "able to recognize function call expression" in {
+    "A Parser" should "able to recognize function call expression" in {
         val content = "NB01(a1, a2)"
         val scanner = Scanner(content)
         Parsers.parse_expression(scanner) match {
@@ -465,7 +467,7 @@ class ParsersSpec extends FlatSpec with Matchers {
         }
     }
 
-    "a parser" should "be able to parse function definition" in {
+    "A Parser" should "be able to parse function definition" in {
         val content = """
                         |def add(a: Float, b: Float): Float = {
                         |  a + b + (1 * 1 / 1) - 1
@@ -480,76 +482,10 @@ class ParsersSpec extends FlatSpec with Matchers {
         }
     }
 
-     "A Parser" should "be able to parse comment starts with #" in {
-         val content = """
-                         |#this is a comment
-                         |1 + 1 * 1 / 1
-                       """.stripMargin('|').trim()
-         val scanner = Scanner(content)
-         val result = Parsers.parse_expression(scanner)
-         if (result.isLeft) {
-             fail(result.left.get.toString)
-            } else if (result.right.get.state.nextToken._1.tokenType != EOFToken) {
-                fail(s"${result.right.get.result.toString} ${result.right.get.state.nextToken._1.toString}")
-            }
-     }
-
-     "A Parser" should "be able to parse if expression without else" in {
-         val content = """
-                         |def validate(a:Integer, b: Integer): Boolean = if (a > b) {true}
-                       """.stripMargin('|').trim()
-         val scanner = Scanner(content)
-         val result = Parsers.parse_expression(scanner)
-         if (result.isLeft) {
-             fail(result.left.get.toString)
-            } else if (result.right.get.state.nextToken._1.tokenType != EOFToken) {
-                fail(s"${result.right.get.result.toString} ${result.right.get.state.nextToken._1.toString}")
-            }
-     }
-
-     "A Parser" should "be able to parse if else" in {
-         val content = """
-                         |def test2(a: Integer, b: Integer): Integer =
-                         |if (a > b) {
-                         |  1 + 1
-                         |} else {
-                         |  2 + 1
-                         |}
-                       """.stripMargin('|').trim()
-         val scanner = Scanner(content)
-         val result = Parsers.parse_program(scanner)
-         if (result.isLeft) {
-             fail(result.left.get.toString)
-            } else if (result.right.get.state.nextToken._1.tokenType != EOFToken) {
-                fail(s"${result.right.get.result.toString}\n${result.right.get.state.nextToken._1.toString}\n${result.right.get.state.toString}")
-            }
-     }
-
-     "A Parser" should "be able to parse if else if" in {
-         val content = """
-                         |let a: Integer = 2
-                         |let b: Integer = 1
-                         |if (a > b) {
-                         |  1 + 1
-                         |  2 + 2
-                         |} else if (a == b) {
-                         |  2 + 1
-                         |} else {
-                         |  4
-                         |}
-                       """.stripMargin('|').trim()
-         val scanner = Scanner(content)
-         val result = Parsers.parse_program(scanner)
-         if (result.isLeft) {
-             fail(result.left.get.toString)
-        } else if (result.right.get.state.nextToken._1.tokenType != EOFToken) {
-            fail(s"${result.right.get.result.toString}\n${result.right.get.state.nextToken._1.toString}\n${result.right.get.state.state.toString}")
-        }
-     }
-
-     "Parse Boolean Expression" should "be able to parse property call expression" in {
+    "A Parser" should "be able to parse comment starts with #" in {
         val content = """
-                        |NB01.M_OPT==Y and MTK1_1.OPT_STUS==Y
+                        |#this is a comment
+                        |1 + 1 * 1 / 1
                       """.stripMargin('|').trim()
         val scanner = Scanner(content)
         val result = Parsers.parse_expression(scanner)
@@ -559,4 +495,58 @@ class ParsersSpec extends FlatSpec with Matchers {
             fail(s"${result.right.get.result.toString} ${result.right.get.state.nextToken._1.toString}")
         }
     }
+
+    "A Parser" should "be able to parse if expression without else" in {
+        val content = """
+                        |def validate(a:Integer, b: Integer): Boolean = if (a > b) {true}
+                      """.stripMargin('|').trim()
+        val scanner = Scanner(content)
+        val result = Parsers.parse_expression(scanner)
+        if (result.isLeft) {
+            fail(result.left.get.toString)
+        } else if (result.right.get.state.nextToken._1.tokenType != EOFToken) {
+            fail(s"${result.right.get.result.toString} ${result.right.get.state.nextToken._1.toString}")
+        }
+    }
+
+    "A Parser" should "be able to parse if else" in {
+        val content = """
+                        |def test2(a: Integer, b: Integer): Integer =
+                        |if (a > b) {
+                        |  1 + 1
+                        |} else {
+                        |  2 + 1
+                        |}
+                      """.stripMargin('|').trim()
+        val scanner = Scanner(content)
+        val result = Parsers.parse_program(scanner)
+        if (result.isLeft) {
+            fail(result.left.get.toString)
+        } else if (result.right.get.state.nextToken._1.tokenType != EOFToken) {
+            fail(s"${result.right.get.result.toString}\n${result.right.get.state.nextToken._1.toString}\n${result.right.get.state.toString}")
+        }
+    }
+
+    "A Parser" should "be able to parse if else if" in {
+        val content = """
+                        |let a: Integer = 2
+                        |let b: Integer = 1
+                        |if (a > b) {
+                        |  1 + 1
+                        |  2 + 2
+                        |} else if (a == b) {
+                        |  2 + 1
+                        |} else {
+                        |  4
+                        |}
+                      """.stripMargin('|').trim()
+        val scanner = Scanner(content)
+        val result = Parsers.parse_program(scanner)
+        if (result.isLeft) {
+            fail(result.left.get.toString)
+        } else if (result.right.get.state.nextToken._1.tokenType != EOFToken) {
+            fail(s"${result.right.get.result.toString}\n${result.right.get.state.nextToken._1.toString}\n${result.right.get.state.state.toString}")
+        }
+    }
+
 }

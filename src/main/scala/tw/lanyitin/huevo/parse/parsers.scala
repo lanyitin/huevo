@@ -58,7 +58,7 @@ object Parsers {
     } else if (next_token.tokenType == CommentBodyToken) {
       parse_expression(scanner.skip(1))
     } else {
-      (ParseAction(this.parse_boolean_expression) or ParseAction(this.parse_arith_expression)).run(scanner)
+      (ParseAction(this.parse_boolean_expression) or ParseAction(this.parse_arithmetic_expression)).run(scanner)
     }
   }
 
@@ -139,7 +139,7 @@ object Parsers {
   }
 
   def parse_boolean_factor(scanner: Scanner): Either[List[ParseError], ParseResult[Expression]] = {
-    val action = ParseAction(this.parse_arith_relation) or
+    val action = ParseAction(this.parse_arithmetic_relation) or
                  ParseAction(this.parse_boolean_literal) or
                  ParseAction(this.parse_identifier_expression)
     val possiblePropertyCallExpr = map2(action, optional(ParseAction(this.parse_selector_chain)), (source: Expression, selectors: Option[List[Either[FunctionCallExpression, IdentifierExpression]]]) => {
@@ -162,11 +162,11 @@ object Parsers {
     (GreaterEqualToken or GreaterToken or LessEqualToken or LessToken or EqualToken or NotEqualToken).run(scanner)
   }
 
-  def parse_arith_relation(scanner: Scanner): Either[List[ParseError], ParseResult[Expression]] = {
+  def parse_arithmetic_relation(scanner: Scanner): Either[List[ParseError], ParseResult[Expression]] = {
     val arith_replation_ops = ParseAction(this.parse_relation_operators)
     for {
-      result1 <- ParseAction(this.parse_arith_expression).run(scanner)
-      result2 <- (arith_replation_ops guard commit(ParseAction(this.parse_arith_expression))).run(result1.state)
+      result1 <- ParseAction(this.parse_arithmetic_expression).run(scanner)
+      result2 <- (arith_replation_ops guard commit(ParseAction(this.parse_arithmetic_expression))).run(result1.state)
     } yield result2.result match {
       case Left(()) => result1
       case Right(r2) => ParseResult(result2.state, OperationCallExpression(
@@ -177,9 +177,9 @@ object Parsers {
     }
   }
 
-  def parse_arith_expression(scanner: Scanner): Either[List[ParseError], ParseResult[Expression]] = {
+  def parse_arithmetic_expression(scanner: Scanner): Either[List[ParseError], ParseResult[Expression]] = {
     val operators = PlusToken or MinusToken
-    var parseTerm = ParseAction(this.parse_arith_term)
+    var parseTerm = ParseAction(this.parse_arithmetic_term)
     val operation = many(operators and commit(parseTerm))
 
     (parseTerm and operation).map(t => {
@@ -192,9 +192,9 @@ object Parsers {
     }).run(scanner)
   }
 
-  def parse_arith_term(scanner: Scanner): Either[List[ParseError], ParseResult[Expression]] = {
+  def parse_arithmetic_term(scanner: Scanner): Either[List[ParseError], ParseResult[Expression]] = {
     val operators = ArithMultToken or ArithDivideToken or ModToken
-    var parseFactor = ParseAction(this.parse_arith_factor)
+    var parseFactor = ParseAction(this.parse_arithmetic_factor)
     val operation = many(operators and commit(parseFactor))
 
     (parseFactor and operation).map(t => {
@@ -207,7 +207,7 @@ object Parsers {
     }).run(scanner)
   }
 
-  def parse_arith_factor(scanner: Scanner): Either[List[ParseError], ParseResult[Expression]] = {
+  def parse_arithmetic_factor(scanner: Scanner): Either[List[ParseError], ParseResult[Expression]] = {
     val numberExpr = ParseAction(this.parse_number_literal_expression)
 
     val identifierOrFunctionCall = map(ParseAction(this.parse_identifier_expression) and (LParanToken guard (ParseAction(this.parse_function_call_args) and RParanToken)))(x => {
@@ -226,7 +226,7 @@ object Parsers {
       }
     })
 
-    val arithExprWrapByParan: ParseAction[Expression] = (LParanToken and commit(ParseAction(this.parse_arith_expression)) and RParanToken).map(x => {
+    val arithExprWrapByParan: ParseAction[Expression] = (LParanToken and commit(ParseAction(this.parse_arithmetic_expression)) and RParanToken).map(x => {
       x._1._2
     })
 
