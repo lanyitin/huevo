@@ -32,7 +32,7 @@ object Ops {
     this.expect(
       token => token.tokenType == tokenType,
       gen,
-      _ => s"expected to be ${tokenType.toString}"
+      token => s"expected to be ${tokenType.toString}, but got ${token.txt}"
     )
 }
 

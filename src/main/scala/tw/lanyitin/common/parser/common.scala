@@ -7,10 +7,11 @@ import tw.lanyitin.huevo.lex.Scanner
 case class ParseResult[+R](state: Scanner, result: R)
 case class ParseError(content: String, token: Token, msg: String, committed: Boolean = false) {
   override def toString: String = {
-    val lines = content.split("(\r\n|\n\r|\r|\n)")
-    (((0 to lines.length - 1).zip(lines).map(t => s"${t._1} ${t._2}").mkString("\n")) ::
-    (lines(token.line)) ::
-    (" " * token.col + "* " + msg + "\n") :: Nil).mkString("\n")
+
+    val lines = content.split("(\r\n|\n\r|\r|\n)");
+    val lineNumbers: List[Int] = (0 to lines.length - 1).toList
+    ((lineNumbers.zip(lines).map(t => s"${t._1}|${t._2}").mkString("\n")) ::
+    (" " * lineNumbers.last.toString.length +  "|" + " " * token.col + "* " + msg + "\n") :: Nil).mkString("\n")
   }
 }
 case class ParseAction[+R](run: Scanner => Either[List[ParseError], ParseResult[R]]) {

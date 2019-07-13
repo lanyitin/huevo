@@ -186,12 +186,28 @@ class ParsersSpec extends FlatSpec with Matchers {
     }
 
     "Parse Boolean Expression" should "able to recognize complex expression" in {
-        val content = "NB01.MORE_OTP==Y and MTK1_1.VER==02"
+        val content =  "OTPtoken==0 or OTPtoken ==  1"
         val scanner = Scanner(content)
         Parsers.parse_boolean_expression(scanner) match {
             case Left(errors) => fail(errors.mkString("\n"))
             case Right(result) => result.result match {
-                case OperationCallExpression(token, _, _) => if (token.txt != "and" || result.state.nextToken._1.tokenType != EOFToken) {
+                case OperationCallExpression(token, _, _) => if (token.txt != "or" || result.state.nextToken._1.tokenType != EOFToken) {
+                    println(scanner.nextToken)
+                    fail(result.toString)
+                }
+                case e => fail(e.toString)
+            }
+        }
+    }
+
+
+    "Parse Identifier Expression" should "following word" in {
+        val content = "OTPtoken"
+        val scanner = Scanner(content)
+        Parsers.parse_identifier_expression(scanner) match {
+            case Left(errors) => fail(errors.mkString("\n"))
+            case Right(result) => result.result match {
+                case IdentifierExpression(token, _) => if (token.txt != "OTPtoken" || result.state.nextToken._1.tokenType != EOFToken) {
                     fail(result.toString)
                 }
                 case e => fail(e.toString)

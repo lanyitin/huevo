@@ -52,7 +52,8 @@ package object lex {
 
         def isDefinedAt(x: (TokenType.TokenType, Pattern)): Boolean = {
           matcher = x._2.matcher(content.substring(state.position))
-          content.length > 0 && matcher.find()
+          val result = content.length > 0 && matcher.find
+          result
         }
 
         def apply(v1: (TokenType.TokenType, Pattern)): Token = {
@@ -67,7 +68,9 @@ package object lex {
       } else {
         val option: Option[Token] = this._nextToken
         option match {
-          case None => (new Token(UnexpectedToken, "<UnexpectedToken>" + state.position), this)
+          case None => {
+            (new Token(UnexpectedToken, s"<UnexpectedToken@${state.position}(${content.charAt(state.position)} ${Character.getNumericValue(content.charAt(state.position))})>"), this)
+          }
           case Some(token) => this.nextState(token)
         }
       }
@@ -92,7 +95,7 @@ package object lex {
         case SpaceToken => normalMode(content, state.copy(position=state.position + result.txt.length,col=state.col+result.txt.length)).nextToken
         case NewLineToken => normalMode(content, state.copy(position=state.position + result.txt.length, col=0, line=state.line+1)).nextToken
         case CommentHeadToken => commentMode(content, state.copy(position=state.position + result.txt.length,col=state.col+result.txt.length)).nextToken
-        case EOFToken | UnexpectedToken => (result, this)
+        case EOFToken | UnexpectedToken => (result, normalMode(content, state.copy(position=state.position + result.txt.length,col=state.col+result.txt.length)))
       }
     }
     def commentMode(content: String, state: ScannerState): Scanner = new Scanner(content, state) {
